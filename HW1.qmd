@@ -1,7 +1,7 @@
 ---
 title: "ProblemSet1"
 author: "Yufan Li"
-format: html
+format: pdf
 editor: visual
 ---
 
