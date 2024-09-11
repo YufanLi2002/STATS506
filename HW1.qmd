@@ -7,16 +7,12 @@ editor: visual
 
 ## Homework 1
 
-------------------------------------------------------------------------
-
 ### problem 1 - Wine Data
-
-------------------------------------------------------------------------
 
 **a. Import the data into a `data.frame` in R. Use the information in the “wine.names” file to give appropriate column names. (Note: Downloading and unzipping the file can take place outside of your submitted document, but importing the file should be in the submission.)**
 
 ```{r 1a}
-setwd("~/Desktop/STATS 506/Homeworks/Homework1")
+setwd("~/Documents/GitHub/STATS506")
 data <- read.csv("wine.data",header = FALSE)
 colnames(data) <- c("Class","Alcohol","Malic Acid","Ash","Alcalinity of ash",
                     "Magnesium","Total phenols","Flavanoids","Nonflavanoid phenols",
@@ -24,10 +20,8 @@ colnames(data) <- c("Class","Alcohol","Malic Acid","Ash","Alcalinity of ash",
                     "Proline")
 wine_data = data.frame(data)
 #wine_data
-print("hello")
-```
 
-------------------------------------------------------------------------
+```
 
 **b. The data contains information on three different classes of wine. Check and report that the number of wines within each class is correct as reported in “wine.names”.**
 
@@ -38,8 +32,6 @@ class_counts
 
 The number of wines within each class is correct as reported in "wine.names".
 
-------------------------------------------------------------------------
-
 **c1. What is the correlation between alcohol content and color intensity?**
 
 ```{r}
@@ -48,8 +40,6 @@ correlation
 ```
 
 The correlation between alcohol content and color intensity is 0.5463642.
-
-------------------------------------------------------------------------
 
 **c2. Which class has the highest correlation? Which has the lowest?**
 
@@ -64,8 +54,6 @@ correlations
 
 According to the output after using 'dplyr' to manipulate the data set, we can see that: Class 1 has the highest correlation of 0.4082913, and class 2 has the lowest correlation of 0.2697891 between alcohol content and color intensity.
 
-------------------------------------------------------------------------
-
 **c3. What is the alcohol content of the wine with the highest color intensity?**
 
 ```{r}
@@ -79,8 +67,6 @@ alcohol
 
 The alcohol content of the wine with the highest color intensity is 14.34.
 
-------------------------------------------------------------------------
-
 **c4. What percentage of wines had a higher content of proanthocyanins compare to ash?**
 
 ```{r}
@@ -93,8 +79,6 @@ percentage
 
 According to the output, 8.426966% of wines had a higher content of proanthocyanins compare to ash.
 
-------------------------------------------------------------------------
-
 **d. Create a table identifying the average value of each variable, providing one row for the overall average, and one row per class with class averages. (This table does not need to be “fancy” but should clearly identify what each value represents.)**
 
 ```{r}
@@ -106,28 +90,36 @@ table
 
 ```
 
-------------------------------------------------------------------------
-
 **e. Carry out a series of t-tests to examine whether the level of phenols differs across the three classes. Present the R output and interpret the results. (You may use an existing R function to carry out the t-test, or for minor extra credit, manually write your own calculation of the t-test p-values.)**
 
 ```{r}
+# Separate data by class
+class1 <- subset(wine_data, Class == 1)
+class2 <- subset(wine_data, Class == 2)
+class3 <- subset(wine_data, Class == 3)
+
+# Perform t-tests to compare phenol levels across classes
+t_test_1_2 <- t.test(class1$Total.phenols, class2$Total.phenols)
+t_test_1_3 <- t.test(class1$Total.phenols, class3$Total.phenols)
+t_test_2_3 <- t.test(class2$Total.phenols, class3$Total.phenols)
+
+# Print the results
+t_test_1_2
+t_test_1_3
+t_test_2_3
+
+
 
 ```
 
-------------------------------------------------------------------------
-
 ### Problem 2 - AskAManager.org Data
-
-------------------------------------------------------------------------
 
 **a. Import the data into a `data.frame` in R. As with the wine data, you may download the data outside of your submission, but importation should take place inside the problem set submission.**
 
 ```{r}
-setwd("~/Desktop/STATS 506/Homeworks/Homework1")
+setwd("~/Documents/GitHub/STATS506")
 manager_data <- read.csv("AskAManager.csv")
 ```
-
-------------------------------------------------------------------------
 
 **b. Clean up the variable names. Simplify them.**
 
@@ -154,8 +146,6 @@ new_data <- data %>%  ## Use dplyr package to rename the variables
 #new_data
 ```
 
-------------------------------------------------------------------------
-
 **c. Restrict the data to those being paid in US dollars (USD). Show that it worked by confirming the number of observations before and after restricting the data.**
 
 ```{r}
@@ -171,39 +161,72 @@ nrow(USD_data)
 
 ```
 
-------------------------------------------------------------------------
-
 **d. Assume no one starts working before age 18. Eliminate any rows for which their age, years of experience in their field, and years of experience total are impossible. Again, confirm the number of observations. (Hint: Making these variables `factor` may make your life easier.)**
 
 ```{r}
-new_data <- new_data %>%
-  mutate(Age = as.numeric(as.character(Age)),
-         Overall_experience = as.numeric(as.character(Overall_experience)),
-         field_experience = as.numeric(as.character(field_experience)))
+# Extract lower bounds from the ranges
+df <- new_data %>%
+  mutate(
+    Age_lower = as.numeric(gsub("[^0-9]", "", 
+                                sapply(strsplit(Age, "-"), `[`, 1))),
+    Field_exp_lower = as.numeric(gsub("[^0-9]", "",
+                                      sapply(strsplit(field_experience, "-"), `[`, 1))),
+    Overall_exp_lower = as.numeric(gsub("[^0-9]", "", 
+                                        sapply(strsplit(Overall_experience, "-"), `[`, 1)))
+  ) 
+### remove other characters in these three variables, but only leave the minimum number in each ### interval of years, and create 3 new cols in the data set for easier access/elimination.
 
-
-cleaned_data <- new_data %>%
-  filter(Age - Overall_experience >= 18,  # Age must be at least 18 when starting work
-         Age - field_experience >= 18,    # Same for field experience
-         Overall_experience >= field_experience)  # Overall experience >= field experience
-
-# Step 3: Count the number of remaining observations
-num_obs <- nrow(cleaned_data)
-num_obs  # Print number of valid observations
-
+filtered_df <- df %>%
+  filter(
+    Age_lower >= 18, ## Save, if lower bound of Age is greater than 18
+    Field_exp_lower <= (Age_lower - 18), 
+    ## Save, if lower bound of Field_exp_lower is less than or equal to the difference of the
+    ## lower bound of Age and 18.  
+    Overall_exp_lower <= (Age_lower - 18)
+    ## Same concept here for Overall years of experience
+  )
+print("number of observations before filtering the data: ")
+nrow(new_data)
+print("number of observations after filtering the data: ")
+nrow(filtered_df)
 ```
-
-------------------------------------------------------------------------
 
 **e. A lot of the incomes are likely false. Eliminate any rows with extremely low or extremely high salaries. I’ll leave the decision of what thresholds to use up to you; you could choose to eliminate only impossible values, or you could restrict the sample to eliminate the extreme values even if they are realistic (e.g. removing the billionaires or the folks making \< \$1,000 per year). You must justify your choice, along with either a cited source or an exploration the data, or some combination.**
 
 **Report your final sample size.**
 
 ```{r}
+summary(filtered_df$Annual_salary)
+# Histogram
+hist(filtered_df$Annual_salary, main = "Annual Salary Distribution (Before Elimination)",
+     xlab = "Salary", breaks = 50)
+
+# Calculate quartiles and IQR
+Q1 <- quantile(filtered_df$Annual_salary, 0.25, na.rm = TRUE)
+Q3 <- quantile(filtered_df$Annual_salary, 0.75, na.rm = TRUE)
+IQR_salary <- Q3 - Q1
+
+# Choose threshold
+lower_bound <- Q1 - 1.5 * IQR_salary
+upper_bound <- Q3 + 1.5 * IQR_salary
+
+# Filter out outliers
+new_df<- filtered_df %>%
+  filter(Annual_salary >= lower_bound & Annual_salary <= upper_bound)
+
+hist(new_df$Annual_salary, main = "Annual Salary Distribution (After Elimination)", 
+     xlab = "Salary", breaks = 50)
+nrow(new_df)
 
 ```
 
-------------------------------------------------------------------------
+According to the website: <https://machinelearningmastery.com/how-to-use-statistics-to-identify-outliers-in-data/>, I learned that the IQR method identifies outliers based on the spread of the middle 50% of the data, and it’s particularly useful since it doesn’t rely on the assumption of normality and works well with skewed distributions. and the formula for determining the thresholds for potential outliers is:
+
+lower bound: Q1 - 1.5 \* IQR
+
+upper bound: Q3 + 1.5 \* IQR
+
+Thus, using this method, we can see the above output and results for the number of observations.
 
 **f. (Optional) If you want to see this analysis through for *no credit*, answer the research question of whether there is a statistical association between education and salary, controlling for years of experience.**
 
@@ -211,11 +234,7 @@ num_obs  # Print number of valid observations
 #### OPTIONAL ####
 ```
 
-------------------------------------------------------------------------
-
 ### **Problem 3 - Palindromic Numbers**
-
-------------------------------------------------------------------------
 
 **a. Write function `isPalindromic` that checks if a given positive integer is a palindrome. Be sure to provide a reasonable error on an invalid input. Be sure to document your function (see instructions above).**
 
@@ -276,8 +295,6 @@ isPalindromic <- function(number){
 }
 ```
 
-------------------------------------------------------------------------
-
 **b. Create a function `nextPalindrome` that finds the next palindromic number strictly greater than the input. Be sure to provide a reasonable error on an invalid input.**
 
 -   **Input: A positive integer**
@@ -325,8 +342,6 @@ nextPalindrome <- function(number) {
   }
 }
 ```
-
-------------------------------------------------------------------------
 
 **c. Use these functions to find the next palindrome for each of the following:**
 
