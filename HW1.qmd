@@ -1,0 +1,354 @@
+---
+title: "ProblemSet1"
+author: "Yufan Li"
+format: html
+editor: visual
+---
+
+## Homework 1
+
+------------------------------------------------------------------------
+
+### problem 1 - Wine Data
+
+------------------------------------------------------------------------
+
+**a. Import the data into a `data.frame` in R. Use the information in the “wine.names” file to give appropriate column names. (Note: Downloading and unzipping the file can take place outside of your submitted document, but importing the file should be in the submission.)**
+
+```{r 1a}
+setwd("~/Desktop/STATS 506/Homeworks/Homework1")
+data <- read.csv("wine.data",header = FALSE)
+colnames(data) <- c("Class","Alcohol","Malic Acid","Ash","Alcalinity of ash",
+                    "Magnesium","Total phenols","Flavanoids","Nonflavanoid phenols",
+                    "Proanthocyanins","Color intensity","Hue","OD280/OD315 of diluted wines",
+                    "Proline")
+wine_data = data.frame(data)
+#wine_data
+
+```
+
+------------------------------------------------------------------------
+
+**b. The data contains information on three different classes of wine. Check and report that the number of wines within each class is correct as reported in “wine.names”.**
+
+```{r 1b}
+class_counts <- table(wine_data$Class)
+class_counts
+```
+
+The number of wines within each class is correct as reported in "wine.names".
+
+------------------------------------------------------------------------
+
+**c1. What is the correlation between alcohol content and color intensity?**
+
+```{r}
+correlation = cor(wine_data$Alcohol, wine_data$Color.intensity)
+correlation
+```
+
+The correlation between alcohol content and color intensity is 0.5463642.
+
+------------------------------------------------------------------------
+
+**c2. Which class has the highest correlation? Which has the lowest?**
+
+```{r}
+library(dplyr)
+correlations <- wine_data %>% ## pass through the data set
+  group_by(Class) %>% ## group by class
+  summarize(correlation = cor(Alcohol, Color.intensity)) 
+  ## Create new variable called "correlation" and assign it with its corresponding values
+correlations
+```
+
+According to the output after using 'dplyr' to manipulate the data set, we can see that: Class 1 has the highest correlation of 0.4082913, and class 2 has the lowest correlation of 0.2697891 between alcohol content and color intensity.
+
+------------------------------------------------------------------------
+
+**c3. What is the alcohol content of the wine with the highest color intensity?**
+
+```{r}
+# First get the row index of the highest color intensity
+index <- which.max(wine_data$Color.intensity)
+# Then get the alcohol content of the wine with the highest color intensity
+alcohol <- wine_data$Alcohol[index]
+alcohol
+
+```
+
+The alcohol content of the wine with the highest color intensity is 14.34.
+
+------------------------------------------------------------------------
+
+**c4. What percentage of wines had a higher content of proanthocyanins compare to ash?**
+
+```{r}
+percentage <- wine_data %>%
+  mutate(higher = Proanthocyanins > Ash) %>%  
+  # Create a new column using mutate command which returns TRUE if greater, FALSE if not 
+  summarize(percentage = mean(higher) * 100)  # Calculate the percentage
+percentage
+```
+
+According to the output, 8.426966% of wines had a higher content of proanthocyanins compare to ash.
+
+------------------------------------------------------------------------
+
+**d. Create a table identifying the average value of each variable, providing one row for the overall average, and one row per class with class averages. (This table does not need to be “fancy” but should clearly identify what each value represents.)**
+
+```{r}
+overall_avg <- colMeans(wine_data[,-1])
+class_avg <- aggregate(. ~ Class, data = wine_data, FUN = mean)
+# Add a row for overall average to the class averages table
+table <- rbind(class_avg, c("Overall Average", overall_avg))
+table
+
+```
+
+------------------------------------------------------------------------
+
+**e. Carry out a series of t-tests to examine whether the level of phenols differs across the three classes. Present the R output and interpret the results. (You may use an existing R function to carry out the t-test, or for minor extra credit, manually write your own calculation of the t-test p-values.)**
+
+```{r}
+
+```
+
+------------------------------------------------------------------------
+
+### Problem 2 - AskAManager.org Data
+
+------------------------------------------------------------------------
+
+**a. Import the data into a `data.frame` in R. As with the wine data, you may download the data outside of your submission, but importation should take place inside the problem set submission.**
+
+```{r}
+setwd("~/Desktop/STATS 506/Homeworks/Homework1")
+manager_data <- read.csv("AskAManager.csv")
+```
+
+------------------------------------------------------------------------
+
+**b. Clean up the variable names. Simplify them.**
+
+```{r}
+data = manager_data[ ,-c(1,10)] ## Remove unused Cols
+new_data <- data %>%  ## Use dplyr package to rename the variables
+  rename(Age = How.old.are.you.,
+         Industry = What.industry.do.you.work.in.,
+         Job = Job.title,
+         Job_context = If.your.job.title.needs.additional.context..please.clarify.here.,
+         Annual_salary = What.is.your.annual.salary...You.ll.indicate.the.currency.in.a.later.question..If.you.are.part.time.or.hourly..please.enter.an.annualized.equivalent....what.you.would.earn.if.you.worked.the.job.40.hours.a.week..52.weeks.a.year..,
+         Bonus = How.much.additional.monetary.compensation.do.you.get..if.any..for.example..bonuses.or.overtime.in.an.average.year...Please.only.include.monetary.compensation.here..not.the.value.of.benefits.,
+         Currency = Please.indicate.the.currency,
+         Income_context = If.your.income.needs.additional.context..please.provide.it.here.,
+         Country = What.country.do.you.work.in.,
+         State = If.you.re.in.the.U.S...what.state.do.you.work.in.,
+         City = What.city.do.you.work.in.,
+         Overall_experience = How.many.years.of.professional.work.experience.do.you.have.overall.,
+         field_experience = How.many.years.of.professional.work.experience.do.you.have.in.your.field.,
+         Education = What.is.your.highest.level.of.education.completed.,
+         Gender = What.is.your.gender.,
+         Race = What.is.your.race...Choose.all.that.apply..)
+
+#new_data
+```
+
+------------------------------------------------------------------------
+
+**c. Restrict the data to those being paid in US dollars (USD). Show that it worked by confirming the number of observations before and after restricting the data.**
+
+```{r}
+USD_data <- new_data %>% 
+  filter(Currency == "USD")   ## filter the data to only USD Currency    
+
+## Unrestricted
+print("number of observations before restricting the data: ")
+nrow(new_data)
+## Restricted
+print("number of observations after restricting the data: ")
+nrow(USD_data)
+
+```
+
+------------------------------------------------------------------------
+
+**d. Assume no one starts working before age 18. Eliminate any rows for which their age, years of experience in their field, and years of experience total are impossible. Again, confirm the number of observations. (Hint: Making these variables `factor` may make your life easier.)**
+
+```{r}
+new_data <- new_data %>%
+  mutate(Age = as.numeric(as.character(Age)),
+         Overall_experience = as.numeric(as.character(Overall_experience)),
+         field_experience = as.numeric(as.character(field_experience)))
+
+
+cleaned_data <- new_data %>%
+  filter(Age - Overall_experience >= 18,  # Age must be at least 18 when starting work
+         Age - field_experience >= 18,    # Same for field experience
+         Overall_experience >= field_experience)  # Overall experience >= field experience
+
+# Step 3: Count the number of remaining observations
+num_obs <- nrow(cleaned_data)
+num_obs  # Print number of valid observations
+
+```
+
+------------------------------------------------------------------------
+
+**e. A lot of the incomes are likely false. Eliminate any rows with extremely low or extremely high salaries. I’ll leave the decision of what thresholds to use up to you; you could choose to eliminate only impossible values, or you could restrict the sample to eliminate the extreme values even if they are realistic (e.g. removing the billionaires or the folks making \< \$1,000 per year). You must justify your choice, along with either a cited source or an exploration the data, or some combination.**
+
+**Report your final sample size.**
+
+```{r}
+
+```
+
+------------------------------------------------------------------------
+
+**f. (Optional) If you want to see this analysis through for *no credit*, answer the research question of whether there is a statistical association between education and salary, controlling for years of experience.**
+
+```{r}
+#### OPTIONAL ####
+```
+
+------------------------------------------------------------------------
+
+### **Problem 3 - Palindromic Numbers**
+
+------------------------------------------------------------------------
+
+**a. Write function `isPalindromic` that checks if a given positive integer is a palindrome. Be sure to provide a reasonable error on an invalid input. Be sure to document your function (see instructions above).**
+
+-   **Input: A positive integer**
+
+-   **Output: A list with two elements:**
+
+    -   **`isPalindromic`: A logical value indicating if the input is palindromic.**
+
+    -   **`reversed`: The input with its digits reversed.**
+
+```{r}
+#' isPalindromic function
+#' 
+#' Palindromic numbers are integers that are equal to the reverse of their digits.
+#' Note that:  all single-digit numbers are palindromic by themselves
+#' 
+#' This function checks if a given positive integer is a palindrome, if the input is not a 
+#' positive integer, it will raise an error.
+#' 
+#' @param number 
+#'
+#' @return a list with two elements: 
+#' \item{isPalindromic}{A logical value indicating if the input is palindromic.(TRUE/FALSE)}
+#' \item{reversed}{The input with its digits reversed.}
+#'
+#' @examples
+#' isPalindromic(728827) # returns $isPalindromic [1] TRUE $reversed [1] 728827
+#' isPalindromic(39951)  # returns $isPalindromic [1] FALSE $reversed [1] 15993
+#' @export
+isPalindromic <- function(number){
+  if (!is.numeric(number) || number <= 0 || number != as.integer(number)) {
+    stop("Input must be a positive integer.")
+  } ## checks if the input is not a number or the number is less than or equal to 0
+    ## or is the input number is not an integer, then it will stop and raise an error
+  
+  # Convert the number to a string 
+  str_number <- as.character(number) # in this way we can manipulate it 
+  
+  # Reverse the digits of the number
+  reversed_str <- paste(rev(unlist(strsplit(str_number, ""))), collapse = "")
+  # strsplit(str_number, "") - Splits the string into individual characters
+  # unlist() - change the list of characters into a vector
+  # rev(): reverses order
+  # paste(..., collapse = ""): Joins the reversed characters back into a single string
+  
+  
+  # Convert the reversed string back to a number
+  reversed_number <- as.integer(reversed_str)
+  
+  # Check if the original number is equal to the reversed number
+  is_palindromic <- (number == reversed_number)
+  
+  # Return the result as a list
+  return(list(isPalindromic = is_palindromic, 
+              reversed = reversed_number))
+  
+}
+```
+
+------------------------------------------------------------------------
+
+**b. Create a function `nextPalindrome` that finds the next palindromic number strictly greater than the input. Be sure to provide a reasonable error on an invalid input.**
+
+-   **Input: A positive integer**
+
+-   **Output: A vector of length 1 with the next palindromic number greater than the input**
+
+```{r}
+
+#' nextPalindrome function
+#' 
+#' This function finds the next palindromic number strictly greater than the input. 
+#' if the input is not a  positive integer, it will raise an error.
+#' 
+#' Note that:  all single-digit numbers are palindromic by themselves
+#'             If the input starts with a leading zero, it will ignore it.
+#' 
+#' @param number a positive integer
+#'
+#' @return A vector of length 1 with the next palindromic number greater than the input
+#' 
+#' 
+#' @examples 
+#' nextPalindrome(7152) ## Returns: [1] 7227 
+#' nextPalindrome(765431537) ## Returns: [1] 765434567
+#' 
+#' 
+#' @export
+nextPalindrome <- function(number) {
+  if (!is.numeric(number) || number <= 0 || number != as.integer(number)) {
+    stop("Input must be a positive integer.")
+  } ## checks if the input is not a number or the number is less than or equal to 0
+    ## or is the input number is not an integer, then it will stop and raise an error
+  
+  # Start looking for the next palindromic number greater than the input
+  next_number <- number + 1 ## Initializes next_number to one greater than the input.
+  
+  while (TRUE) { #continually check numbers starting from next_number
+    if (isPalindromic(next_number)$isPalindromic) { 
+      # Use isPalindromic function written in part a to check if next_number is a palindrome
+
+      return(next_number)
+    }
+    next_number <- next_number + 1
+    ## keep looping through until the next palindrome is found
+  }
+}
+```
+
+------------------------------------------------------------------------
+
+**c. Use these functions to find the next palindrome for each of the following:**
+
+i.  **391**
+
+ii. **9928**
+
+iii. **19272719**
+
+iv. **109**
+
+v.  **2**
+
+```{r}
+# (i)
+nextPalindrome(391)
+# (ii)
+nextPalindrome(9928)
+# (iii)
+nextPalindrome(19272719)
+# (iv)
+nextPalindrome(109)
+# (v)
+nextPalindrome(2)
+```
