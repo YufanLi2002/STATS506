@@ -1,7 +1,7 @@
 ---
 title: "ProblemSet1"
 author: "Yufan Li"
-format: html
+format: pdf
 editor: visual
 ---
 
@@ -111,6 +111,8 @@ t_test_2_3
 
 
 ```
+
+Based on the above outcomes, We can see that all three comparisons have very small p-value and is less than the alpha level of 0.05, therefore, we can conclude that there are statistically significant differences in phenol levels between the wine classes. The mean phenol level is highest in Class 1, then in Class 2, and lowest in Class 3.
 
 ### Problem 2 - AskAManager.org Data
 
