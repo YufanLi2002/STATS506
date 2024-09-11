@@ -7,6 +7,8 @@ editor: visual
 
 ## Homework 1
 
+Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
+
 ### problem 1 - Wine Data
 
 **a. Import the data into a `data.frame` in R. Use the information in the “wine.names” file to give appropriate column names. (Note: Downloading and unzipping the file can take place outside of your submitted document, but importing the file should be in the submission.)**
@@ -160,6 +162,7 @@ nrow(new_data)
 ## Restricted
 print("number of observations after restricting the data: ")
 nrow(USD_data)
+
 
 ```
 
