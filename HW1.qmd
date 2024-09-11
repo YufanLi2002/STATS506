@@ -24,7 +24,7 @@ colnames(data) <- c("Class","Alcohol","Malic Acid","Ash","Alcalinity of ash",
                     "Proline")
 wine_data = data.frame(data)
 #wine_data
-
+print("hello")
 ```
 
 ------------------------------------------------------------------------
