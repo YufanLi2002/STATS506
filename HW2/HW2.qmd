@@ -1,0 +1,393 @@
+---
+title: "HW2"
+author: "Yufan Li"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+## Homework 2
+
+Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
+
+### Problem 1 - Dice Game
+
+**Let’s play a dice game. It costs \$2 to play. You roll a single 6-sided die.**
+
+-   **On a roll of 3 or 5, you win twice your roll.**
+
+-   **On any other roll, you lose.**
+
+**The input and output should be:**
+
+-   **Input: The number of dice to roll.**
+
+-   **Output: Total winnings**
+
+**a.**
+
+-    **Version 1: Implement this game using a loop.**
+
+-   **Version 2: Implement this game using built-in R vectorized functions.**
+
+-   **Version 3: Implement this by rolling all the dice into one and collapsing the die rolls into a single `table()`. (Hint: Be careful indexing the table - what happens if you make a table of a single dice roll? You may need to look to other resources for how to solve this.)**
+
+-   **Version 4: Implement this game by using one of the “`apply`” functions.**
+
+Version 1
+
+```{r}
+#' Vesion 1 of dice game
+#' Implement this game using a loop
+#' 
+#' Rules:
+#' It costs $2 to play the game 
+#' On a roll of 3 or 5, you win twice your roll; On any other roll, you lose
+#' 
+#' @param n # the number of dice to roll
+#' @return # total winnings 
+#'
+#' @examples
+#' play_dice(1) returns 4
+#' 
+#' @export
+#' 
+#' 
+play_dice1 <- function(n){
+  set.seed(506) # control randomazation
+  cost = 2 * n # stores the total cost of all dices
+  total_win = 0 # initialize total_win to 0
+  for (i in 1:n){ # using a for loop to loop through all dice rolls 
+    nsim <- sample(1:6, 1, replace = TRUE) 
+  # use the sample() function to generate each roll one-by-one ramdomly (1 to 6)
+    if (nsim == 3 || nsim == 5){
+      total_win = total_win + 2 * nsim
+      # if roll is 3, add 6 to total win, if roll is 5, add 10 to total win
+    }
+  }
+  return(total_win - cost)
+  # return total winning minus the cost to play game
+}
+#play_dice1(3000)
+```
+
+Version 2
+
+```{r}
+#' Vesion 2 of dice game
+#' Implement this game using built-in R vectorized functions
+#' 
+#' Rules:
+#' It costs $2 to play the game 
+#' On a roll of 3 or 5, you win twice your roll; On any other roll, you lose
+#' 
+#' @param n # the number of dice to roll
+#' @return # total winnings 
+#'
+#' @examples
+#' play_dice(1) returns 4
+#' 
+#' @export
+play_dice2 <- function(n){
+  set.seed(506) # control randomazation
+  cost = 2 * n
+  nsim <- sample(1:6, n, replace = TRUE)
+  # use the built-in function sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  win_vec = ifelse(nsim == 3 | nsim == 5, 2 * nsim, 0)
+  # if the simuation of roll is equal to 3 or 5, then times itself twice, otherwise return 0
+  total_win = sum(win_vec) - cost
+  ## total win equals the sum of the vector computed above - cost
+  return(total_win)
+}
+#play_dice2(10)
+
+
+```
+
+Version 3
+
+```{r}
+#' Vesion 3 of dice game
+#' Implement this game by rolling all the dice into one and collapsing the 
+#' die rolls into a single table()
+#' 
+#' Rules:
+#' It costs $2 to play the game 
+#' On a roll of 3 or 5, you win twice your roll; On any other roll, you lose
+#' 
+#' @param n # the number of dice to roll
+#' @return # total winnings 
+#'
+#' @examples
+#' play_dice(1) returns 4
+#' 
+#' @export
+play_dice3 <- function(n){
+  set.seed(506) # control randomazation
+  cost = 2 * n
+  nsim <- sample(1:6, n, replace = T)
+  # use sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  roll_table = table(factor(nsim, levels = 1:6))  # Ensures 1 to 6 are always in the table
+  counts = as.numeric(roll_table) # convert to numeric
+  total_win = (2 * 3 * counts[3]) +  # Winnings from rolling 3
+              (2 * 5 * counts[5])  # Winnings from rolling 5
+  return(total_win - cost)
+}
+# play_dice3(10)
+
+```
+
+Version 4
+
+```{r}
+#' Vesion 4 of dice game
+#' Implement this game by by using one of the “apply” functions.
+#' 
+#' Rules:
+#' It costs $2 to play the game 
+#' On a roll of 3 or 5, you win twice your roll; On any other roll, you lose
+#' 
+#' @param n # the number of dice to roll
+#' @return # total winnings 
+#'
+#' @examples
+#' play_dice(1) returns 4
+#' 
+#' @export
+play_dice4 <- function(n) {
+  set.seed(506) # Control Randomization
+  rolls <- sample(1:6, n, replace = TRUE)
+  # use sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  winnings <- sapply(rolls, function(roll) { 
+    ## Using the sapply function for the vector of rolls
+    if (roll == 3 || roll == 5) { ## Implement rules of the game 
+      return(roll * 2) 
+    } else {
+      return(0)
+    }
+  })
+  
+  total_winnings <- sum(winnings) - n * 2 ## Return total winning
+  return(total_winnings)
+}
+
+# play_dice4(10)
+
+```
+
+**b. Demonstrate that all versions work. Do so by running each a few times, once with an input a 3, and once with an input of 3,000.**
+
+```{r}
+## Demonstrate all versions work with input 3 and 3000
+play_dice1(3)
+play_dice1(3000)
+play_dice2(3)
+play_dice2(3000)
+play_dice3(3)
+play_dice3(3000)
+play_dice4(3)
+play_dice4(3000)
+```
+
+**c. Demonstrate that the four versions give the same result. Test with inputs 3 and 3,000. (You will need to add a way to control the randomization.)**
+
+```{r}
+## All four vesions give the same result, tested with 3 and 3000.
+play_dice1(3)
+play_dice1(3000)
+play_dice2(3)
+play_dice2(3000)
+play_dice3(3)
+play_dice3(3000)
+play_dice4(3)
+play_dice4(3000)
+```
+
+**d. Use the *microbenchmark* package to clearly demonstrate the speed of the implementations. Compare performance with a low input (1,000) and a large input (100,000). Discuss the results**
+
+```{r}
+library(microbenchmark)
+
+# Benchmarking with 1,000 rolls
+benchmark_1000 <- microbenchmark(
+  ver1 = play_dice1(1000),
+  ver2 = play_dice2(1000),
+  ver3 = play_dice3(1000),
+  ver4 = play_dice4(1000),
+  times = 10
+)
+print(benchmark_1000)
+
+# Benchmarking with 100,000 rolls
+benchmark_100000 <- microbenchmark(
+  ver1 = play_dice1(100000),
+  ver2 = play_dice2(100000),
+  ver3 = play_dice3(100000),
+  ver4 = play_dice4(100000),
+  times = 10
+)
+print(benchmark_100000)
+```
+
+Large Input: Based on the above outputs, we can observe that version 2 (vectorized implementation) is the best-performing method for larger inputs with the smallest mean computation time compare to the other methods, which is consistent with the general principal of what we learned during lecture that vectorized operations in R are highly optimized for speed.
+
+Small Input: Version 3 (the `table()` implementation) is the best-performing method for smaller inputs with the smallest mean computation time compare to the other methods. This is likely due to the small number of unique outcomes (1-6) that `table()` can efficiently handle.
+
+With a thorough examination for both outputs, we can see that the loop implementation is consistently the slowest across all input sizes, making it unsuitable for larger datasets. And the `apply()` implementation is moderately efficient but not as fast as vectorized methods.
+
+**e. Do you think this is a fair game? Defend your decision with evidence based upon a Monte Carlo simulation.**
+
+```{r}
+# Monte Carlo Simulation of the Dice Game
+#'
+#' @param n_simulations ## number of simulations
+#'
+#' @return The expected value of the net outcome
+#'
+#' @examples monte_carlo_simulation(1000000) returns 0.67
+#' 
+#' @export
+monte_carlo_simulation <- function(n_simulations) {
+  rolls <- sample(1:6, n_simulations, replace = TRUE)
+  # use sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  # Calculate the winnings
+  winnings <- ifelse(rolls == 3 | rolls == 5, rolls * 2, 0)
+  
+  # Calculate net outcome (winnings minus the $2 cost per game)
+  net_outcome <- winnings - 2
+  
+  # Return the average net outcome (expected value)
+  expected_value <- mean(net_outcome)
+  
+  return(expected_value)
+}
+
+# Running the Monte Carlo simulation with 1,000,000 games
+monte_carlo_simulation(1000000)
+
+```
+
+I do not think this is a fair game. Based on the probability theory, the chance of losing is $\frac{4}{6}$ (when outcome is 1,2,4,6), and the probability of winning is $\frac{2}{6}$ =$\frac{1}{3}$ (when outcome is 3,5). Therefore the expected value of the game given the condition of the rules is calculated as: $\frac{1}{6}\cdot\left(6-2\ \right)+\ \frac{1}{6}\cdot\left(10-2\right)\ +\ \frac{4}{6}\cdot\left(-2\right)\ =\ \frac{2}{3}$ which is approximately 0.66667. Based on the implementation of the Monte Carlo Algorithm, we can actually observe that. When we run the simulation 1000000 times, the expected value is shown to be approximately 0.66 as well. This implies the game is actually favorable to the player, and on average, they make a profit of \$0.67 per game due to the high payouts of winning.
+
+### Problem 2 - Linear Regression
+
+**a. The names of the variables in this data are way too long. Rename the columns of the data to more reasonable lengths.**
+
+```{r}
+library(dplyr)
+setwd("~/Documents/GitHub/STATS506/HW2")
+data <- read.csv("cars.csv")
+car <- data %>% 
+  rename(Height = Dimensions.Height,
+         Length = Dimensions.Length,
+         Width = Dimensions.Width,
+         Driveline = Engine.Information.Driveline,
+         EngineType = Engine.Information.Engine.Type,
+         Hybrid = Engine.Information.Hybrid,
+         Gears = Engine.Information.Number.of.Forward.Gears,
+         Transmission = Engine.Information.Transmission,
+         CityFuel = Fuel.Information.City.mpg,
+         FuelType = Fuel.Information.Fuel.Type,
+         HighwayFuel = Fuel.Information.Highway.mpg,
+         Classification = Identification.Classification,
+         ID = Identification.ID,
+         Make = Identification.Make,
+         ModelYear = Identification.Model.Year,
+         Year = Identification.Year,
+         Horsepower = Engine.Information.Engine.Statistics.Horsepower,
+         Torque = Engine.Information.Engine.Statistics.Torque
+         )
+
+```
+
+**b. Restrict the data to cars whose Fuel Type is “Gasoline”.**
+
+```{r}
+# filter the data to cars whose Fuel Type is Gasoline
+car <- car%>%filter(FuelType == "Gasoline")
+
+```
+
+**c. Examine the distribution of highway gas mileage. Consider whether a transformation could be used. If so, generate the transformed variable and *use this variable going forward*. If not, provide a short justification.**
+
+```{r}
+library(ggplot2)
+# Create a histogram for examination of the data
+ggplot(car, aes(x = HighwayFuel)) +
+  geom_histogram(binwidth = 3, fill = "lightblue", color = "pink") +
+  labs(title = "Distribution of Highway Gas Mileage", x = "Highway MPG", y = "Frequency")+
+  xlim(0,100)
+summary(car$HighwayFuel)
+```
+
+Based on the output of the summary of the Highway MPG, we can observe that there is potential outliers in the data set since the max number is 223. And by looking at the distribution of the Highway MPG histogram plotted above, we can see that the data is slightly right-skewed. Therefore, A log transformation could be used here to normalize the data, making it more suitable for analysis.
+
+```{r}
+# Apply log transformation to HighwayFuel
+car <- car %>% 
+  mutate(Log_HighwayFuel = log(HighwayFuel))
+
+# Check for transformation results
+summary(car$Log_HighwayFuel)
+
+# Plot histogram of log-transformed HighwayFuel
+ggplot(car, aes(x = Log_HighwayFuel)) +
+  geom_histogram(binwidth = 0.2, fill = "lightblue", color = "pink") +
+  labs(title = "Distribution of Log-Transformed Highway Gas Mileage", x = "Log of Highway MPG", y = "Frequency")
+```
+
+After the log-transformation, we can see that the data become more normalized based on the histogram above showing its distribution.
+
+**d. Fit a linear regression model predicting MPG on the highway. The predictor of interest is torque. Control for:**
+
+-   **The horsepower of the engine**
+
+-   **All three dimensions of the car**
+
+-   **The year the car was released, as a categorical variable.**
+
+**Briefly discuss the estimated relationship between torque and highway MPG. Be precise about the interpretation of the estimated coefficient.**
+
+```{r}
+# Convert 'Year' to a categorical variable (factor)
+car$Year <- as.factor(car$Year)
+
+# Fit the linear regression model
+model <- lm(HighwayFuel ~ Torque + Horsepower + Height + Length + Width + Year, data = car)
+
+# Summary of the regression model
+summary(model)
+```
+
+Based on the output computed above, we can see that the coefficient for Torque is -0.0507425 which indicates that torque and highway MPG have a negative and moderately strong linear relationship. In other words, we can say that for every additional unit of torque, the car’s highway MPG decreases by approximately 0.0507425 miles per gallon, holding horsepower, dimensions, and year constant.
+
+**e. It seems reasonable that there may be an interaction between torque and horsepower. Refit the model (with `lm`) and generate an interaction plot, showing how the relationship between torque and MPG changes as horsepower changes. Choose reasonable values of torque, and show lines for three different reasonable values of horsepower.**
+
+**(Hint: If you choose to use the *interactions* package for this, look at the `at =` argument to help with how year comes into play - choose a reasonable single value for year.**
+
+```{r}
+# model with interaction
+library(interactions)
+model_interaction <- lm(HighwayFuel ~ Torque * Horsepower + Height + Length + Width + Year, 
+                        data = car)
+summary(model_interaction)
+
+```
+
+**f. Calculate** β^ **from d. manually (without using `lm`) by first creating a proper design matrix, then using matrix algebra to estimate** β**. Confirm that you get the same result as `lm` did prior.**
+
+```{r}
+# Extract the predictors and create the model matrix (including intercept)
+X <- model.matrix(~ Torque + Horsepower + Height + Length + Width + Year, data = car)
+# Extract the response vector (y)
+y <- car$HighwayFuel
+
+# Apply the formula for β^: β^ = (X^T X)^(-1) X^T y
+beta_hat <- solve(t(X) %*% X) %*% (t(X) %*% y)
+beta_hat
+
+## compare with lm result 
+coef(model)
+
+```
