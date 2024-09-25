@@ -55,11 +55,11 @@ Version 1
 #' 
 #' 
 play_dice1 <- function(n){
-  set.seed(506) # control randomazation
-  cost = 2 * n # stores the total cost of all dices
-  total_win = 0 # initialize total_win to 0
-  for (i in 1:n){ # using a for loop to loop through all dice rolls 
+  cost = 2 * n         # stores the total cost of all dices
+  total_win = 0        # initialize total_win to 0
+  for (i in 1:n){      # using a for loop to loop through all dice rolls 
     nsim <- sample(1:6, 1, replace = TRUE) 
+    
   # use the sample() function to generate each roll one-by-one ramdomly (1 to 6)
     if (nsim == 3 || nsim == 5){
       total_win = total_win + 2 * nsim
@@ -90,14 +90,16 @@ Version 2
 #' 
 #' @export
 play_dice2 <- function(n){
-  set.seed(506) # control randomazation
   cost = 2 * n
   nsim <- sample(1:6, n, replace = TRUE)
   # use the built-in function sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  
   win_vec = ifelse(nsim == 3 | nsim == 5, 2 * nsim, 0)
   # if the simuation of roll is equal to 3 or 5, then times itself twice, otherwise return 0
+  
   total_win = sum(win_vec) - cost
   ## total win equals the sum of the vector computed above - cost
+  
   return(total_win)
 }
 #play_dice2(10)
@@ -124,14 +126,14 @@ Version 3
 #' 
 #' @export
 play_dice3 <- function(n){
-  set.seed(506) # control randomazation
   cost = 2 * n
-  nsim <- sample(1:6, n, replace = T)
+  nsim <- sample(1:6, n, replace = TRUE)
   # use sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  
   roll_table = table(factor(nsim, levels = 1:6))  # Ensures 1 to 6 are always in the table
-  counts = as.numeric(roll_table) # convert to numeric
-  total_win = (2 * 3 * counts[3]) +  # Winnings from rolling 3
-              (2 * 5 * counts[5])  # Winnings from rolling 5
+  counts = as.numeric(roll_table)                 # convert to numeric
+  total_win = (2 * 3 * counts[3]) +               # Winnings from rolling 3
+              (2 * 5 * counts[5])                 # Winnings from rolling 5
   return(total_win - cost)
 }
 # play_dice3(10)
@@ -156,11 +158,12 @@ Version 4
 #' 
 #' @export
 play_dice4 <- function(n) {
-  set.seed(506) # Control Randomization
   rolls <- sample(1:6, n, replace = TRUE)
   # use sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  
   winnings <- sapply(rolls, function(roll) { 
     ## Using the sapply function for the vector of rolls
+    
     if (roll == 3 || roll == 5) { ## Implement rules of the game 
       return(roll * 2) 
     } else {
@@ -168,7 +171,9 @@ play_dice4 <- function(n) {
     }
   })
   
-  total_winnings <- sum(winnings) - n * 2 ## Return total winning
+  total_winnings <- sum(winnings) - n * 2
+  
+  ## Return total winning
   return(total_winnings)
 }
 
@@ -181,28 +186,41 @@ play_dice4 <- function(n) {
 ```{r}
 ## Demonstrate all versions work with input 3 and 3000
 play_dice1(3)
-play_dice1(3000)
 play_dice2(3)
-play_dice2(3000)
 play_dice3(3)
-play_dice3(3000)
 play_dice4(3)
+play_dice1(3000)
+play_dice2(3000)
+play_dice3(3000)
 play_dice4(3000)
 ```
+
+All versions work after running multiple times with an input of 3 and 3000.
 
 **c. Demonstrate that the four versions give the same result. Test with inputs 3 and 3,000. (You will need to add a way to control the randomization.)**
 
 ```{r}
 ## All four vesions give the same result, tested with 3 and 3000.
+## Using set.seed() function to control randomization
+set.seed(506)
 play_dice1(3)
-play_dice1(3000)
+set.seed(506)
 play_dice2(3)
-play_dice2(3000)
+set.seed(506)
 play_dice3(3)
-play_dice3(3000)
+set.seed(506)
 play_dice4(3)
+set.seed(506)
+play_dice1(3000)
+set.seed(506)
+play_dice2(3000)
+set.seed(506)
+play_dice3(3000)
+set.seed(506)
 play_dice4(3000)
 ```
+
+Using the set.see() function in R to ensure that all four versions return the same results.
 
 **d. Use the *microbenchmark* package to clearly demonstrate the speed of the implementations. Compare performance with a low input (1,000) and a large input (100,000). Discuss the results**
 
@@ -215,7 +233,7 @@ benchmark_1000 <- microbenchmark(
   ver2 = play_dice2(1000),
   ver3 = play_dice3(1000),
   ver4 = play_dice4(1000),
-  times = 10
+  times = 10 # Repeat runs 10 times
 )
 print(benchmark_1000)
 
@@ -225,7 +243,7 @@ benchmark_100000 <- microbenchmark(
   ver2 = play_dice2(100000),
   ver3 = play_dice3(100000),
   ver4 = play_dice4(100000),
-  times = 10
+  times = 10 # Repeat runs 10 times
 )
 print(benchmark_100000)
 ```
@@ -251,6 +269,7 @@ With a thorough examination for both outputs, we can see that the loop implement
 monte_carlo_simulation <- function(n_simulations) {
   rolls <- sample(1:6, n_simulations, replace = TRUE)
   # use sample() to generate all n rolls as a vector ramdomly (1 to 6)
+  
   # Calculate the winnings
   winnings <- ifelse(rolls == 3 | rolls == 5, rolls * 2, 0)
   
@@ -263,7 +282,7 @@ monte_carlo_simulation <- function(n_simulations) {
   return(expected_value)
 }
 
-# Running the Monte Carlo simulation with 1,000,000 games
+# Running the Monte Carlo simulation with 1000000 games
 monte_carlo_simulation(1000000)
 
 ```
@@ -279,6 +298,7 @@ library(dplyr)
 setwd("~/Documents/GitHub/STATS506/HW2")
 data <- read.csv("cars.csv")
 car <- data %>% 
+  ## Using dplyr package to compute data manipulation
   rename(Height = Dimensions.Height,
          Length = Dimensions.Length,
          Width = Dimensions.Width,
@@ -297,7 +317,7 @@ car <- data %>%
          Year = Identification.Year,
          Horsepower = Engine.Information.Engine.Statistics.Horsepower,
          Torque = Engine.Information.Engine.Statistics.Torque
-         )
+         ) ## Renaming all the variables
 
 ```
 
@@ -313,11 +333,16 @@ car <- car%>%filter(FuelType == "Gasoline")
 
 ```{r}
 library(ggplot2)
-# Create a histogram for examination of the data
+# Create a histogram for examination of the data using ggplot2 package
 ggplot(car, aes(x = HighwayFuel)) +
   geom_histogram(binwidth = 3, fill = "lightblue", color = "pink") +
-  labs(title = "Distribution of Highway Gas Mileage", x = "Highway MPG", y = "Frequency")+
-  xlim(0,100)
+  # picked a reasonable binwidth to demonstrate the distribution better
+  labs(title = "Distribution of Highway Gas Mileage", 
+       x = "Highway MPG", y = "Frequency")+
+  xlim(0,100) 
+  ## Set the limit of x-axis to be (0,100), removing potential outliers from plot
+
+## use summary() to analyze the data
 summary(car$HighwayFuel)
 ```
 
@@ -334,7 +359,8 @@ summary(car$Log_HighwayFuel)
 # Plot histogram of log-transformed HighwayFuel
 ggplot(car, aes(x = Log_HighwayFuel)) +
   geom_histogram(binwidth = 0.2, fill = "lightblue", color = "pink") +
-  labs(title = "Distribution of Log-Transformed Highway Gas Mileage", x = "Log of Highway MPG", y = "Frequency")
+  labs(title = "Distribution of Log-Transformed Highway Gas Mileage", 
+       x = "Log of Highway MPG", y = "Frequency")
 ```
 
 After the log-transformation, we can see that the data become more normalized based on the histogram above showing its distribution.
@@ -354,24 +380,48 @@ After the log-transformation, we can see that the data become more normalized ba
 car$Year <- as.factor(car$Year)
 
 # Fit the linear regression model
-model <- lm(HighwayFuel ~ Torque + Horsepower + Height + Length + Width + Year, data = car)
+model <- lm(Log_HighwayFuel ~ Torque + Horsepower + Height + Length + Width + Year, data = car)
 
 # Summary of the regression model
 summary(model)
 ```
 
-Based on the output computed above, we can see that the coefficient for Torque is -0.0507425 which indicates that torque and highway MPG have a negative and moderately strong linear relationship. In other words, we can say that for every additional unit of torque, the car’s highway MPG decreases by approximately 0.0507425 miles per gallon, holding horsepower, dimensions, and year constant.
+Based on the output computed above, we can see that the coefficient for Torque is -0.002294 which means that torque and Log_highway MPG have a negative relationship. In other words, we can say that for each unit increase in `Torque`, the `Log_HighwayFuel` decreases by about 0.0023, while holding horsepower, dimensions, and year constant.
 
 **e. It seems reasonable that there may be an interaction between torque and horsepower. Refit the model (with `lm`) and generate an interaction plot, showing how the relationship between torque and MPG changes as horsepower changes. Choose reasonable values of torque, and show lines for three different reasonable values of horsepower.**
 
 **(Hint: If you choose to use the *interactions* package for this, look at the `at =` argument to help with how year comes into play - choose a reasonable single value for year.**
 
 ```{r}
-# model with interaction
+## Import 2 libraries that can be used for interaction plot
+library(emmeans) 
 library(interactions)
-model_interaction <- lm(HighwayFuel ~ Torque * Horsepower + Height + Length + Width + Year, 
+
+## fit model with interaction Torque * Horsepower
+model_interaction <- lm(Log_HighwayFuel ~ Torque * Horsepower + Height + Length + Width + Year, 
                         data = car)
-summary(model_interaction)
+
+## Analyze the histogram of both torque and horsepower to pick the three reasonable values
+## for both torque and horsepower, based on the result, horsepower is centered around the 
+## range (200, 400), therefore, I picked 3 values around its Q1 and Q3 quantile values 
+hist(car$Horsepower)
+hist(car$Torque)
+summary(car$Horsepower)
+summary(car$Torque)
+## Same ideology for picking 200, 400, 500 for Torque to generate their interacton plot
+
+## Create the interaction plot using the function interact_plot
+interact_plot(model_interaction,  # model_interaction
+              pred = "Torque",   
+              modx = "Horsepower", # horsepower as the mooderating variable
+              modx.values = c(200, 250, 300),  ## pick 3 values for horsepower
+              at = list(Year = "2011"), ## pick a single value for year 2011
+              data = car)
+#summary(model_interaction)
+
+emmip(model_interaction, Horsepower ~ Torque, # horsepower as the mooderating variable
+      at = list(Horsepower = c(200, 300 ,400), ## pick 3 values for horsepower
+                Torque = c(200, 250, 350))) ## pick 3 values for torque
 
 ```
 
@@ -381,7 +431,7 @@ summary(model_interaction)
 # Extract the predictors and create the model matrix (including intercept)
 X <- model.matrix(~ Torque + Horsepower + Height + Length + Width + Year, data = car)
 # Extract the response vector (y)
-y <- car$HighwayFuel
+y <- car$Log_HighwayFuel
 
 # Apply the formula for β^: β^ = (X^T X)^(-1) X^T y
 beta_hat <- solve(t(X) %*% X) %*% (t(X) %*% y)
@@ -391,3 +441,5 @@ beta_hat
 coef(model)
 
 ```
+
+Based on the computation above, we can see that they both return the same results.
