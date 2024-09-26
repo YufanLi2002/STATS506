@@ -3302,11 +3302,11 @@ window.Quarto = {
 </div>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice2</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 0</code></pre>
+<pre><code>[1] -6</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice3</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -6</code></pre>
+<pre><code>[1] 0</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice4</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -3314,19 +3314,19 @@ window.Quarto = {
 </div>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice1</span>(<span class="dv">3000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 2034</code></pre>
+<pre><code>[1] 2148</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice2</span>(<span class="dv">3000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 2040</code></pre>
+<pre><code>[1] 2220</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice3</span>(<span class="dv">3000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 1884</code></pre>
+<pre><code>[1] 1858</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">play_dice4</span>(<span class="dv">3000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 1952</code></pre>
+<pre><code>[1] 2000</code></pre>
 </div>
 </div>
 <p>All versions work after running multiple times with an input of 3 and 3000.</p>
@@ -3394,10 +3394,10 @@ window.Quarto = {
 <div class="cell-output cell-output-stdout">
 <pre><code>Unit: microseconds
  expr      min       lq      mean    median       uq      max neval
- ver1 3425.543 3670.584 4045.8383 3829.2925 4036.042 6406.876    10
- ver2  101.667  102.417  111.9088  105.4380  120.750  132.334    10
- ver3   98.375  100.292  114.5714  110.5630  119.918  151.959    10
- ver4  391.667  397.293  413.9383  404.7925  424.084  471.084    10</code></pre>
+ ver1 3698.250 3843.626 4105.7090 3884.6465 4014.418 6089.084    10
+ ver2  111.751  115.876  121.7840  120.3545  125.084  143.709    10
+ ver3  105.417  107.001  123.1880  116.0005  124.875  168.292    10
+ ver4  403.084  410.834  425.1592  411.5215  420.418  489.167    10</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Benchmarking with 100,000 rolls</span></span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>benchmark_100000 <span class="ot">&lt;-</span> <span class="fu">microbenchmark</span>(</span>
@@ -3411,10 +3411,10 @@ window.Quarto = {
 <div class="cell-output cell-output-stdout">
 <pre><code>Unit: milliseconds
  expr        min         lq       mean     median         uq        max neval
- ver1 371.297917 389.603667 395.996376 393.420084 405.813042 427.521626    10
- ver2   9.390167   9.598792  10.017105   9.965189  10.430751  10.759751    10
- ver3   6.385668   6.831168   7.010563   6.898834   7.381292   7.725667    10
- ver4  43.636000  43.888959  45.726509  45.397146  46.765668  50.617126    10</code></pre>
+ ver1 378.228000 381.587876 394.400480 394.578063 400.424626 423.610917    10
+ ver2   9.466417  10.065251  10.246934  10.411334  10.449334  10.801084    10
+ ver3   6.314667   6.398709   6.862338   6.873667   7.313084   7.495209    10
+ ver4  42.788543  43.755334  45.522096  44.946417  46.703792  51.966917    10</code></pre>
 </div>
 </div>
 <p>Large Input: Based on the above outputs, we can observe that version 2 (vectorized implementation) is the best-performing method for larger inputs with the smallest mean computation time compare to the other methods, which is consistent with the general principal of what we learned during lecture that vectorized operations in R are highly optimized for speed.</p>
@@ -3606,7 +3606,7 @@ Multiple R-squared:  0.5638,    Adjusted R-squared:  0.563
 F-statistic: 740.3 on 8 and 4582 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </div>
-<p>Based on the output computed above, we can see that the coefficient for Torque is -0.002294 which means that torque and Log_highway MPG have a negative relationship. In other words, we can say that for each unit increase in <code>Torque</code>, the <code>Log_HighwayFuel</code> decreases by about 0.0023, while holding horsepower, dimensions, and year constant.</p>
+<p>Based on the output computed above, we can see that the coefficient for Torque is -0.002294 which means that torque and Log_highway MPG have a negative relationship. In other words, we can say that for each unit increase in <code>Torque</code>, the <code>Log_HighwayFuel</code> decreases by about 0.0023%, while holding horsepower, dimensions, and year constant.</p>
 <p><strong>e. It seems reasonable that there may be an interaction between torque and horsepower. Refit the model (with <code>lm</code>) and generate an interaction plot, showing how the relationship between torque and MPG changes as horsepower changes. Choose reasonable values of torque, and show lines for three different reasonable values of horsepower.</strong></p>
 <p><strong>(Hint: If you choose to use the <em>interactions</em> package for this, look at the <code>at =</code> argument to help with how year comes into play - choose a reasonable single value for year.</strong></p>
 <div class="cell">
@@ -3622,8 +3622,9 @@ F-statistic: 740.3 on 8 and 4582 DF,  p-value: &lt; 2.2e-16</code></pre>
 <span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a><span class="do">## Analyze the histogram of both torque and horsepower to pick the three reasonable values</span></span>
 <span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a><span class="do">## for both torque and horsepower, based on the result, horsepower is centered around the </span></span>
-<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a><span class="do">## range (200, 400), therefore, I picked 3 values around its Q1 and Q3 quantile values </span></span>
-<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(car<span class="sc">$</span>Horsepower)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a><span class="do">## range (200, 400), therefore, I picked 3 values around its Q1 and Q3 quantile values</span></span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a><span class="do">## since the majority of the data points falls in this range</span></span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(car<span class="sc">$</span>Horsepower)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">

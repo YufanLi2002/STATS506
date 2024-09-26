@@ -386,7 +386,7 @@ model <- lm(Log_HighwayFuel ~ Torque + Horsepower + Height + Length + Width + Ye
 summary(model)
 ```
 
-Based on the output computed above, we can see that the coefficient for Torque is -0.002294 which means that torque and Log_highway MPG have a negative relationship. In other words, we can say that for each unit increase in `Torque`, the `Log_HighwayFuel` decreases by about 0.0023, while holding horsepower, dimensions, and year constant.
+Based on the output computed above, we can see that the coefficient for Torque is -0.002294 which means that torque and Log_highway MPG have a negative relationship. In other words, we can say that for each unit increase in `Torque`, the `Log_HighwayFuel` decreases by about 0.0023%, while holding horsepower, dimensions, and year constant.
 
 **e. It seems reasonable that there may be an interaction between torque and horsepower. Refit the model (with `lm`) and generate an interaction plot, showing how the relationship between torque and MPG changes as horsepower changes. Choose reasonable values of torque, and show lines for three different reasonable values of horsepower.**
 
@@ -403,7 +403,8 @@ model_interaction <- lm(Log_HighwayFuel ~ Torque * Horsepower + Height + Length 
 
 ## Analyze the histogram of both torque and horsepower to pick the three reasonable values
 ## for both torque and horsepower, based on the result, horsepower is centered around the 
-## range (200, 400), therefore, I picked 3 values around its Q1 and Q3 quantile values 
+## range (200, 400), therefore, I picked 3 values around its Q1 and Q3 quantile values
+## since the majority of the data points falls in this range
 hist(car$Horsepower)
 hist(car$Torque)
 summary(car$Horsepower)
