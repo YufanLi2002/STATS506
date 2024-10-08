@@ -27,7 +27,7 @@ Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
 
 **a.**
 
--    **Version 1: Implement this game using a loop.**
+-   **Version 1: Implement this game using a loop.**
 
 -   **Version 2: Implement this game using built-in R vectorized functions.**
 
@@ -426,7 +426,7 @@ emmip(model_interaction, Horsepower ~ Torque, # horsepower as the mooderating va
 
 ```
 
-**f. Calculate** β^ **from d. manually (without using `lm`) by first creating a proper design matrix, then using matrix algebra to estimate** β**. Confirm that you get the same result as `lm` did prior.**
+**f. Calculate** β\^ **from d. manually (without using `lm`) by first creating a proper design matrix, then using matrix algebra to estimate** β**. Confirm that you get the same result as `lm` did prior.**
 
 ```{r}
 # Extract the predictors and create the model matrix (including intercept)
