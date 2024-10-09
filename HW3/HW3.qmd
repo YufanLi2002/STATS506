@@ -23,6 +23,7 @@ library(knitr)
 library(stargazer)
 library(kableExtra)
 library(broom)
+library(dplyr)
 
 # Read the VIX_D and DEMO_D files
 vix_d <- read_xpt("VIX_D.XPT")
