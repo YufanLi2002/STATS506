@@ -37,41 +37,61 @@ library(nycflights13)
 data(flights)
 data(airports)
 
-# Generate the first table with mean and median departure delay, using airport names
+# First table with the mean and median departure delay for each departure airport
 table1 <- flights %>% 
+  # Group data by the origin airport code
   group_by(origin) %>% 
+  # Filter to keep groups with at least 10 flights and remove rows with missing departure delay
   filter(n() >= 10 & !is.na(dep_delay)) %>%
+  # Calculate the mean and median departure delay for each airport
   summarise(
     mean_dep_delay = mean(dep_delay),
     median_dep_delay = median(dep_delay)
   ) %>%
-  inner_join(airports, by = c("origin" = "faa")) %>%  # Join to get airport names
-  select(name, mean_dep_delay, median_dep_delay) %>% # Select only relevant columns
+  # Join with the airports dataset to get the airport names, matching origin code to faa code
+  inner_join(airports, by = c("origin" = "faa")) %>%  
+  # Select only the columns for airport name, mean, and median departure delay
+  select(name, mean_dep_delay, median_dep_delay) %>% 
+  # Sort the table by mean departure delay in descending order
   arrange(desc(mean_dep_delay)) %>%
-  rename(airport = name) %>%  # Rename 'name' to 'airport'
+  # Rename 'name' column to 'airport'
+  rename(airport = name) %>%  
+  # Print the entire table without truncation
   print(n = Inf)
+
 
 ```
 
 ```{r}
+# Second table with the mean and median arrival delay for each destination airport
 table2 <- flights %>% 
+  # Group data by the destination airport code
   group_by(dest) %>% 
+  # Filter to keep groups with at least 10 flights and remove rows with missing arrival delay
   filter(n() >= 10 & !is.na(arr_delay)) %>%
+  # Calculate the mean and median arrival delay for each destination airport
   summarise(
     mean_arr_delay = mean(arr_delay, na.rm = TRUE),
     median_arr_delay = median(arr_delay, na.rm = TRUE)
   ) %>%
-  inner_join(airports, by = c("dest" = "faa")) %>%  # Join to get airport names
-  select(name, mean_arr_delay, median_arr_delay) %>% # Select only relevant columns
+  # Join with the airports dataset to get the airport names, matching destination code to faa code
+  inner_join(airports, by = c("dest" = "faa")) %>%  
+  # Select only the columns for airport name, mean, and median arrival delay
+  select(name, mean_arr_delay, median_arr_delay) %>% 
+  # Sort the table by mean arrival delay in descending order
   arrange(desc(mean_arr_delay)) %>%
-  rename(airport = name) %>%  # Rename 'name' to 'airport'
+  # Rename 'name' column to 'airport' for clarity
+  rename(airport = name) %>%  
+  # Print the entire table without truncation
   print(n = Inf)
+
 
 ```
 
 b\. How many flights did the aircraft model with the fastest average speed take? Produce a tibble with 1 row, and entries for the model, average speed (in MPH) and number of flights.
 
 ```{r}
+## load the necessary data sets
 data(planes)
 data(airlines)
 
@@ -121,127 +141,126 @@ The output should be a numeric vector of length 1. The code inside the function 
 Prove your code works by evaluating the following. Your code should produce the result, or a reasonable error message.
 
 ```{r}
+# Load the data set 
 nnmaps <- read.csv("chicago-nmmaps.csv")
 
+#' Get Average Temperature for a Specified Month and Year
+#'
+#' This function calculates the average temperature for a specified month and year 
+#' from a given dataset. The temperature can be returned in either Fahrenheit 
+#' or Celsius, and a custom averaging function can be specified.
+#'
+#' @param month A number (1-12) or the full/abbreviated name of the month (e.g., "January" or "Jan").
+#' @param year An integer specifying the year for which to calculate the average temperature.
+#' @param data A data frame containing temperature data with required columns: "month", 
+#' "month_numeric", "year", and "temp".
+#' @param celsius Logical, if TRUE, converts the temperature from Fahrenheit to Celsius. Defaults to FALSE.
+#' @param average_fn A function for calculating the average temperature. Defaults to `mean`.
+#'
+#' @return The average temperature for the specified month and year in Fahrenheit (or Celsius if requested).
+#' Returns an error message if input validation fails or no data is found.
+#' 
+#' @examples
+#' 
+#' get_temp("Jan", 2023, nnmaps, celsius = TRUE)
+#' get_temp(1, 2023, nnmaps, average_fn = median)
+#'
+#' @export
+#' 
 get_temp <- function(month, year, data, celsius = FALSE, average_fn = mean) {
-  # Sanitize year input
-  if (!is.numeric(year) || year < 1900 || year > 2100) {
-    stop("Invalid year. Please provide a numeric year between 1900 and 2100.")
+  # Input validation: Check if 'data' is a data frame
+  if (!is.data.frame(data)) {
+    return("'data' must be a data frame")
   }
   
-  # Check if month is character (abbreviation) or numeric, and filter accordingly
+  # Check if required columns are present in 'data'
+  # Since these columns are necessary for filtering and calculating temperature
+  required_cols <- c("month", "month_numeric", "year", "temp")
+  if (!all(required_cols %in% names(data))) {
+    return("Data must contain required columns")
+  }
+  
+  # Standardize the month input
   if (is.character(month)) {
-    # Standardize input to match title case format in data
-    month <- tolower(month)
-    if (!(month %in% tolower(month.abb))) {
-      stop("Invalid month abbreviation. Please provide a valid three-letter month abbreviation or a numeric value between 1 and 12.")
+    # Convert to 3-letter abbreviation if input is a full month name
+    month_abbr <- substr(month, 1, 3)
+    
+    # Check if the abbreviation exists in the data; if not, try full name
+    if (!month_abbr %in% unique(data$month)) {
+      # Try matching the full month name in English (e.g., "January")
+      month_num <- match(tolower(month), tolower(month.name))
+      
+      # Return error if month name is invalid
+      if (is.na(month_num)) {
+        return("Invalid month name")
+      }
+      
+      # Convert matched month to its 3-letter abbreviation
+      month_abbr <- month.abb[month_num]
     }
-    month <- tools::toTitleCase(month)  # Converts 'apr' or 'APR' to 'Apr'
-    temp_data <- data %>% filter(year == year, month == month)
     
-  } else if (is.numeric(month) && month >= 1 && month <= 12) {
-    # Use numeric month in "month_numeric" column
-    temp_data <- data %>% filter(year == year, month_numeric == month)
+    # Filter data for specified month (abbreviation) and year
+    filtered_data <- data %>%
+      filter(month == month_abbr, year == !!year)
     
+  } else if (is.numeric(month)) {
+    # Validate numeric month input is within the range 1-12
+    if (month < 1 || month > 12) {
+      return("Month must be between 1 and 12")
+    }
+    
+    # Filter data for specified numeric month and year
+    filtered_data <- data %>%
+      filter(month_numeric == !!month, year == !!year)
   } else {
-    stop("Invalid month. Please provide a numeric month value between 1 and 12 or a valid three-letter abbreviation.")
+    # Return error if month is neither numeric nor a valid name
+    return("Month must be either a number (1-12) or a month name")
   }
   
-  
-  # Check if data exists for the specified year and month
-  if (nrow(temp_data) == 0) {
-    stop("No data available for the specified month and year.")
+  # Check if any rows remain after filtering for the specified month and year
+  if (nrow(filtered_data) == 0) {
+    return("No data found for specified month and year")
   }
   
-  # Validate average_fn
-  if (!identical(average_fn, mean) && !is.function(average_fn)) {
-    stop("Invalid average_fn. Please provide a valid function to calculate the average (default is 'mean').")
+  # Calculate the average temperature for the filtered data
+  # Check if 'average_fn' supports 'na.rm' argument to handle NA values if needed
+  if ("na.rm" %in% names(formals(average_fn))) {
+    # Use 'average_fn' with 'na.rm = TRUE' to ignore any missing temperature values
+    result <- filtered_data %>%
+      summarise(temp = average_fn(temp, na.rm = TRUE)) %>%
+      pull(temp)
+  } else {
+    # Use 'average_fn' without 'na.rm' if the function doesn't support it
+    result <- filtered_data %>%
+      summarise(temp = average_fn(temp)) %>%
+      pull(temp)
   }
   
-  
-  # Calculate average temperature using the specified function
-  avg_temp <- tryCatch({
-    average_fn(temp_data$temp, na.rm = TRUE)
-  }, error = function(e) {
-    stop("Error in calculating average: please ensure `average_fn` is a valid function.")
-  })
-  
-  # Convert to Celsius if needed
+  # Convert temperature to Celsius if 'celsius' argument is TRUE
   if (celsius) {
-    avg_temp <- (avg_temp - 32) * 5 / 9
+    result <- (result - 32) * 5 / 9
   }
   
-  return(avg_temp)
+  # Return the calculated temperature
+  return(result)
 }
-  
 
-
-# # Example usage (use your data frame as nnmaps):
-# get_temp("Apr", 1999, data = nnmaps)
-# get_temp("Apr", 1999, data = nnmaps, celsius = TRUE)
-# get_temp(10, 1998, data = nnmaps, average_fn = median)
-# get_temp(13, 1998, data = nnmaps)   # Should return an error for invalid month
-# get_temp(2, 2005, data = nnmaps)    # Should return an error if data for 2005 is unavailable
-# get_temp("November", 1999, data = nnmaps, celsius = TRUE, average_fn = function(x) {
-#   x %>% sort -> x
-#   x[2:(length(x) - 1)] %>% mean %>% return
-# })
-# 
+ 
 
 ```
 
-\
-
 ```{r}
-get_temp <- function(month, year, data, celsius = FALSE, average_fn = mean, ...) {
-  # Sanitize year input
-  if (!is.numeric(year) || year < 1900 || year > 2100) {
-    stop("Invalid year. Please provide a numeric year between 1900 and 2100.")
-  }
-  
-  # Check if month is character (abbreviation) or numeric, and filter accordingly
-  if (is.character(month)) {
-    # Standardize input to match title case format in data
-    month <- tolower(month)
-    if (!(month %in% tolower(month.abb))) {
-      stop("Invalid month abbreviation. Please provide a valid three-letter month abbreviation or a numeric value between 1 and 12.")
-    }
-    month <- tools::toTitleCase(month)  # Converts 'november' or 'NOV' to 'Nov'
-    temp_data <- data %>% filter(year == year, month == month)
-    
-  } else if (is.numeric(month) && month >= 1 && month <= 12) {
-    # Use numeric month in "month_numeric" column
-    temp_data <- data %>% filter(year == year, month_numeric == month)
-    
-  } else {
-    stop("Invalid month. Please provide a numeric month value between 1 and 12 or a valid three-letter abbreviation.")
-  }
-  
-  # Check if data exists for the specified year and month
-  if (nrow(temp_data) == 0) {
-    stop("No data available for the specified month and year.")
-  }
-  
-  # Validate average_fn - allow custom functions
-  if (!is.function(average_fn)) {
-    stop("Invalid average_fn. Please provide a valid function to calculate the average (default is 'mean').")
-  }
-  
-  # Calculate average temperature using the specified function
-  avg_temp <- tryCatch({
-    average_fn(temp_data$temp, na.rm = TRUE, ...)  # Pass additional arguments to the average function
-  }, error = function(e) {
-    stop("Error in calculating average: please ensure `average_fn` is a valid function.")
-  })
-  
-  # Convert to Celsius if needed
-  if (celsius) {
-    avg_temp <- (avg_temp - 32) * 5 / 9
-  }
-  
-  return(avg_temp)
-}
-
+## the test cases for the function
+# Example usage (use your data frame as nnmaps):
+get_temp("Apr", 1999, data = nnmaps)
+get_temp("Apr", 1999, data = nnmaps, celsius = TRUE)
+get_temp(10, 1998, data = nnmaps, average_fn = median)
+get_temp(13, 1998, data = nnmaps)   # Should return an error for invalid month
+get_temp(2, 2005, data = nnmaps)    # Should return an error if data for 2005 is unavailable
+get_temp("November", 1999, data = nnmaps, celsius = TRUE, average_fn = function(x) {
+   x %>% sort -> x
+   x[2:(length(x) - 1)] %>% mean %>% return
+ })
 ```
 
 ### Problem 3 - Visualization 
@@ -266,144 +285,182 @@ iii. Is the graph publication ready?
 
 part (a)
 
-```{r}
+```{r, fig.width=8, fig.height=8}
+# load the data set and all necessary packages 
 artSale <- read.csv("df_for_ml_improved_new_market.csv")
-
 library(ggplot2)
 library(dplyr)
+library(scales)
 
-# Assuming 'artSale' is your dataset
-avg_price_over_time <- artSale %>%
-  group_by(year) %>%
-  summarize(avg_price = mean(price_usd, na.rm = TRUE))
+# Calculate yearly summary statistics for art sale prices
+yearly_stats <- artSale %>%
+  group_by(year) %>%  # Group data by 'year'
+  summarise(
+    median_price = median(price_usd),  # Calculate median price for each year
+    mean_price = mean(price_usd),      # Calculate mean price for each year
+    q25 = quantile(price_usd, 0.25),   # Calculate 25th percentile price (lower quartile)
+    q75 = quantile(price_usd, 0.75),   # Calculate 75th percentile price (upper quartile)
+    max = max(price_usd),              # Calculate maximum price for each year
+    min = min(price_usd)               # Calculate minimum price for each year
+  )
 
-ggplot(avg_price_over_time, aes(x = year, y = avg_price)) +
-  geom_line(color = "blue", size = 1) +
-  geom_point(color = "blue", size = 2) +
-  labs(title = "Average Sales Price Over Time",
+# Create a plot of yearly art sale price statistics
+ggplot(data = yearly_stats) +
+  # Add shaded area representing the IQR
+  geom_ribbon(aes(x = year, ymin = q25, ymax = q75),
+              fill = "lightblue", alpha = 0.3) +
+  # plot line for yearly mean price with custom color and thickness
+  geom_line(aes(x = year, y = mean_price, color = "Mean"),
+            size = 1.2) +
+  #plot line for yearly median price with custom color and thickness
+  geom_line(aes(x = year, y = median_price, color = "Median"),
+            size = 1.2) +
+  # add points for mean price with specific shape and size for visibility
+  geom_point(aes(x = year, y = mean_price, color = "Mean"),
+             size = 3, shape = 16) +
+  # add points for median price with different shape for distinction
+  geom_point(aes(x = year, y = median_price, color = "Median"),
+             size = 3, shape = 17) +
+  # Format y-axis labels to display in dollar format
+  scale_y_continuous(labels = dollar_format()) +
+  # Set custom colors for mean and median lines
+  scale_color_manual(values = c("Mean" = "darkred", "Median" = "navy")) +
+  # Add plot title, subtitle, and axis labels
+  labs(title = "Art Sale Prices Over Time",
+       subtitle = "Yearly Mean and Median Prices with Interquartile Range",
        x = "Year",
-       y = "Average Sales Price (USD)") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+       y = "Price (USD)",
+       color = "Measure") +
+  # Apply minimal theme with increased base text size for readability
+  theme_minimal(base_size = 14) +
+  # Customize title, subtitle, legend, and axis text for better presentation
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),   
+    # Set title font size and boldness for emphasis
+    plot.subtitle = element_text(size = 14, face = "italic"),  
+    # Set subtitle font size and italic style for distinction
+    legend.position = "bottom",  
+    # Position the legend below the plot for a cleaner layout
+    legend.title = element_blank(), 
+    # Remove the legend title to simplify the legend display
+    axis.text.x = element_text(angle = 45, hjust = 1),  
+    # Rotate x-axis labels 45 degrees to prevent overlap and improve readability
+    axis.text = element_text(size = 12),  
+    # Increase size of axis text for better readability
+    axis.title = element_text(size = 14)  
+    # Increase size of axis titles to match overall plot text size
+  )
+
 
 ```
+
+After computing the mean and median sale prices for each year from 1997 to 2012, and generating the graph above, we can clearly see that there IS a change in the sales price in USD over time. Here is a more detailed explanation:
+
+-   The plot shows a clear upward trend in the sales prices over the year 2000 to 2008 and decreased from 2008 to 2012, indicated by the consistent behavior in both the mean and median lines. This trend suggests that, on average, artworks are selling for higher prices each year from 2000 to 2008 and a relatively lower prices from 2008 to 2012.
+
+-   the interquartile range (IQR), represented by the shaded ribbon between the 25th and 75th percentiles, widens over time. This widening indicates greater variability in sales prices, suggesting that while prices are generally increasing, the distribution of prices is becoming more dispersed. It indicates that while most prices may be increasing, a portion of particularly high sales is pulling the average up, leading to greater variation within each year.
 
 Part (b)
 
 ```{r}
-# Reshape data to get genre counts per year
-genre_distribution <- artSale %>%
-  tidyr::pivot_longer(
-    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),
-    names_to = "Genre",
-    values_to = "IsGenre"
-  ) %>%
-  filter(IsGenre == 1) %>%
-  mutate(Genre = gsub("Genre___", "", Genre)) %>%
-  group_by(year, Genre) %>%
-  summarize(count = n(), .groups = 'drop')
-
-# Faceted bar plot with uniform y-axis tick marks across genres
-ggplot(genre_distribution, aes(x = year, y = count, fill = Genre)) +
-  geom_bar(stat = "identity") +
-  facet_wrap(~ Genre) +  # Uniform y-axis scale across all facets
-  scale_fill_brewer(palette = "Set2") +  # Distinct colors for each genre
-  labs(title = "Distribution of Art Sales by Genre Across Years",
-       x = "Year",
-       y = "Count of Sales") +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    strip.text = element_text(size = 10, face = "bold"),  # Enhances readability of genre labels
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotates x-axis labels for better readability
-  ) +
-  guides(fill = "none")  # Removes legend since each facet represents a different genre
-
-```
-
-```{r, fig.width=15, fig.height=12}
 # Data processing
 genre_distribution <- artSale %>%
+  # Convert wide format genres into a long format where each row is a genre for a sale
   tidyr::pivot_longer(
-    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),
-    names_to = "Genre",
-    values_to = "IsGenre"
+    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),  # Select genre columns
+    names_to = "Genre",      # Rename the column that holds genre names
+    values_to = "IsGenre"    # Rename the column that indicates whether sale belongs to the genre
   ) %>%
+  # Filter for rows where the genre is present (IsGenre == 1)
   filter(IsGenre == 1) %>%
+  # Clean up genre names by removing prefix "Genre___"
   mutate(Genre = gsub("Genre___", "", Genre)) %>%
+  # Group by year and genre to calculate yearly counts for each genre
   group_by(year, Genre) %>%
-  summarize(count = n(), .groups = 'drop') %>%
+  summarize(count = n(), .groups = 'drop') %>%  # Count number of sales per genre per year
+  # Calculate total sales and proportion of each genre within each year
   group_by(year) %>%
-  mutate(total_sales_year = sum(count), 
-         proportion = count / total_sales_year) %>%
+  mutate(total_sales_year = sum(count),                 # Total sales for the year
+         proportion = count / total_sales_year) %>%     # Proportion of sales for each genre
   ungroup()
 
-# Create visualization with trend lines
-ggplot(genre_distribution, aes(x = Genre, y = proportion)) +
-  # Bars with slightly reduced alpha to make trend line visible
-  geom_bar(aes(fill = Genre), stat = "identity", width = 0.7, alpha = 0.8) +
-  # Add smooth trend line per year
-  geom_smooth(aes(group = Genre, color = Genre), method = "loess", se = FALSE, size = 1) +
-  # Add labels for actual proportions above the bars
-  geom_text(aes(label = scales::percent(proportion, accuracy = 1)), 
-             vjust = -0.1,  # Adjust vertical position higher
-             hjust = 0.5,   # Center the text horizontally
-             size = 4,      # Adjust font size
-             fill = "white", # Background fill for the label
-             color = "black") +  # Text color
-  facet_wrap(~ year, scales = "fixed") +  # Use "fixed" for consistent y-axis
+
+# Create the stacked bar plot
+ggplot(genre_distribution, 
+       aes(x = year,       # X-axis represents the year
+           y = count,      # Y-axis represents the count of sales for each genre
+           fill = Genre)) +  # Fill color represents different genres
+  # Create stacked bars for genre distribution within each year
+  geom_bar(stat = "identity",    # Use raw values in 'count' for bar height
+           position = "stack",   # Stack bars within each year to show genre distribution
+           width = 0.8) +        # Set bar width to make spacing clearer
+  # Custom color scheme for genre bars
   scale_fill_manual(values = c("#FF9999", "#66B2FF", "#99FF99", "#FFCC99", "#FF99CC")) +
-  labs(title = "Distribution of Art Sales by Genre",
-       x = "Genre",
-       y = "Proportion of Sales") +
-  theme_grey(base_size = 14) +
+  # Labels and titles for the plot
+  labs(title = "Distribution of Art Genres Over Time",   # Main plot title
+       subtitle = "Yearly count of sales by genre", # Subtitle for more context
+       x = "Year",             # X-axis label
+       y = "Sales Count",  # Y-axis label
+       fill = "Genre") +       # Legend title
+  # Theme customization for visual styling
+  theme_minimal() +  # Use a minimal theme for a clean look
   theme(
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", margin = margin(b = 20)),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 14, face = "bold"),
-    axis.text.y = element_text(size = 14),
-    axis.title.y = element_text(size = 18, face = "bold", margin = margin(r = 10)),
-    strip.text = element_text(size = 16, face = "bold"),
-    strip.background = element_rect(fill = "grey80"),
-    panel.spacing = unit(2, "lines"),
-    panel.grid.major = element_line(color = "grey90", size = 0.5),
-    panel.grid.minor = element_line(color = "grey95", size = 0.25),
-    panel.background = element_rect(fill = "white"),
-    plot.background = element_rect(fill = "grey95"),
-    legend.position = "none",
-    plot.margin = margin(40, 20, 20, 20)
-  ) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
-                     breaks = seq(0, 1, by = 0.2))  # Set consistent breaks
+    plot.title = element_text(size = 16, face = "bold"),    # Bold and size-adjusted title
+    plot.subtitle = element_text(size = 12),                # Subtitle with smaller font
+    axis.title = element_text(size = 12),                   # Axis titles size adjustment
+    axis.text = element_text(size = 10),                    # Axis labels size adjustment
+    axis.text.x = element_text(angle = 45, hjust = 1),      # Angle x-axis labels for readability
+    legend.position = "right",                              # Position legend on the right side
+    legend.title = element_text(size = 12),                 # Legend title size adjustment
+    legend.text = element_text(size = 10),                  # Legend labels size adjustment
+    panel.grid.major.x = element_blank(),                   # Remove major vertical grid lines
+    panel.grid.minor = element_blank()                      # Remove minor grid lines for clarity
+  )
 
 
 
 ```
+
+Based on stacked bar plot computed above, the distribution of genre of sales across years does appear to change. we can clearly see that there is an overall increasing trend for the distribution of genre of sales, which indicates that there is a wider spread across all 5 genres, reflecting potentially diversified sales patterns.
 
 Part (c)
 
 ```{r}
 # Calculate the average sales price by genre and year
 genre_price_trends <- artSale %>%
+  # Convert wide format genres into long format where each row represents a genre for a sale
   tidyr::pivot_longer(
-    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),
-    names_to = "Genre",
-    values_to = "IsGenre"
+    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),  # Select genre columns
+    names_to = "Genre",       # Create a new column for genre names
+    values_to = "IsGenre"     # Create a new column indicating if sale belongs to the genre
   ) %>%
+  # Filter rows where the genre is present (IsGenre == 1)
   filter(IsGenre == 1) %>%
+  # Clean up genre names by removing the prefix "Genre___"
   mutate(Genre = gsub("Genre___", "", Genre)) %>%
+  # Group data by year and genre to calculate average sales price for each genre within each year
   group_by(year, Genre) %>%
-  summarize(avg_price = mean(price_usd, na.rm = TRUE), .groups = 'drop')
+  # Calculate the average price of sales in USD, removing missing values
+  summarize(avg_price = mean(price_usd, na.rm = TRUE), .groups = 'drop')  # Compute average price
 
 # Plot average sales price by genre over time
 ggplot(genre_price_trends, aes(x = year, y = avg_price, color = Genre)) +
+  # Add lines to connect average price points over time for each genre
   geom_line(size = 1) +
+  # Add points to highlight average price values at each year
   geom_point(size = 2) +
-  labs(title = "Average Sales Price by Genre Over Time",
-       x = "Year",
-       y = "Average Sales Price (USD)",
-       color = "Genre") +
+  # Labels for plot title, axis titles, and legend
+  labs(title = "Average Sales Price by Genre Over Time",   # Main plot title
+       x = "Year",                # X-axis label
+       y = "Average Sales Price (USD)",  # Y-axis label
+       color = "Genre") +         # Legend title
+  # Minimal theme for a clean plot style
   theme_minimal() +
+  # Center the plot title for aesthetic alignment
   theme(plot.title = element_text(hjust = 0.5))
 
 
+
 ```
+
+The line plot reveals that all five genres show an upward trend in sales price over time. "*Sculpture"* displays a steady, gradual increase in average sales price each year, while "*Painting* " and "*Other"* genres exhibit a similar upward trend, with both experiencing a sharp rise in 2008. In contrast, "*Print"* and "*Photography"* show significantly higher price growth than the other genres, reflected by the wider gap between their lines. This substantial increase suggests a shift in demand or value for these genres. Additionally, the sharp spike in 2008 hints at possible outliers, as prices surged notably in that year.

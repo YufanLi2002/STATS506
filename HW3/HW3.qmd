@@ -463,6 +463,8 @@ apartment_numbers <- na.omit(US_500$apartment_number)
 # Apply log transformation to the apartment numbers
 log_apartment_numbers <- log(apartment_numbers)
 
+hist(log_apartment_numbers)
+
 # Create the histogram
 library(ggplot2)
 ggplot(data = data.frame(log_apartment_numbers), aes(x = log_apartment_numbers)) +
