@@ -1,0 +1,824 @@
+---
+title: "HW5"
+author: "Yufan Li"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+## Homework 5
+
+Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
+
+### Problem 1 - OOP Programming 
+
+Create a class to represent rational numbers (numbers of the form a/b for integers a and b). Do this using S4.
+
+a.  For the `rational` class, define the following:
+
+    1.  A constructor
+
+    2.  A validator that ensures the denominator is non-zero.
+
+    3.  A `show` method.
+
+    4.  A `simplify` method, to obtain the simplest form (e.g. `simplify(2/4)` produces `1/2`).
+
+    5.  A `quotient` method (e.g. `quotient(3/7)` produces `.42857143...`). It should support a `digits` argument *but only in the printing, not the returned result* (Hint: what does `print` return?).
+
+    6.  Addition, subtraction, multiplication, division. These should all return a `rational`.
+
+    7.  You’ll (probably) need [GCD](https://en.wikipedia.org/wiki/Greatest_common_divisor) and [LCM](https://en.wikipedia.org/wiki/Least_common_multiple) as part of some of these calculations; include these functions using **Rcpp**. Even if you don’t need these functions for another calculation, include them.
+
+```{r}
+#' Compute the Greatest Common Divisor (GCD)
+#'
+#' This function calculates the greatest common divisor (GCD) of two integers using the Euclidean algorithm.
+#'
+#' @param a An integer or numeric value.
+#' @param b An integer or numeric value.
+#'
+#' @return An integer representing the GCD of `a` and `b`.
+#' @examples
+#' gcd(48, 18)  # Returns 6
+#' gcd(56, 98)  # Returns 14
+gcd <- function(a, b) {
+    # Ensure the inputs are positive integers by converting them to integer type and taking the absolute value
+    a <- abs(as.integer(a))
+    b <- abs(as.integer(b))
+    
+    # The Euclidean algorithm to find the GCD: repeat until b becomes 0
+    while (b != 0) {
+        # Store the current value of b temporarily
+        temp <- b
+        # Calculate the remainder of a divided by b
+        b <- a %% b
+        # Update a to the previous value of b
+        a <- temp
+    }
+    
+    # Return the GCD, which will be the final value of a
+    return(a)
+}
+
+
+
+#' Compute the Least Common Multiple (LCM)
+#'
+#' This function calculates the least common multiple (LCM) of two integers using the relationship:
+#' LCM(a, b) = |a * b| / GCD(a, b).
+#'
+#' @param a An integer or numeric value.
+#' @param b An integer or numeric value.
+#'
+#' @return A numeric value representing the LCM of `a` and `b`.
+#' @examples
+#' lcm(4, 5)  # Returns 20
+#' lcm(12, 15)  # Returns 60
+lcm <- function(a, b) {
+    # The formula for LCM is |a * b| / GCD(a, b)
+    # Calculate the absolute value of the product of a and b, then divide by their GCD
+    abs(a * b) / gcd(a, b)
+}
+```
+
+```{r}
+#' Rational Class
+#'
+#' This class represents rational numbers and provides methods for
+#' performing arithmetic operations, simplifying rational numbers, and
+#' computing their quotient.
+#'
+#' @slot numerator An integer representing the numerator of the rational number.
+#' @slot denominator An integer representing the denominator of the rational number.
+#'
+#' @name rational-class
+#' @rdname rational-class
+setClass("rational", 
+    slots = list(
+        numerator = "integer",  # The numerator of the rational number
+        denominator = "integer" # The denominator of the rational number
+    ),
+    validity = function(object) {
+        # Ensure the denominator is not zero
+        if (object@denominator == 0) {
+            stop("Denominator cannot be zero")  # Stop execution if the denominator is zero
+        }
+        return(TRUE)  # Return TRUE if the object is valid
+    }
+)
+
+#' Initialize method for rational class
+#'
+#' Initializes an object of class `rational` with a numerator and denominator.
+#' Ensures the numerator and denominator are valid (non-zero, numeric values),
+#' and normalizes the sign of the rational number.
+#'
+#' @param num A numeric value representing the numerator. Defaults to 0.
+#' @param den A numeric value representing the denominator. Defaults to 1.
+#' 
+#' @return An object of class `rational`.
+#' @export
+setMethod("initialize", "rational", 
+    function(.Object, num = 0L, den = 1L) {
+        # Check if numerator or denominator are NULL or empty strings
+        if (is.null(num) || num == "") {
+            stop("Numerator cannot be NULL or an empty string.")  
+          # Stop execution if num is invalid
+        }
+        if (is.null(den) || den == "") {
+            stop("Denominator cannot be NULL or an empty string.")  
+          # Stop execution if den is invalid
+        }
+
+        # Ensure num and den are numeric and single values
+        if (!is.numeric(num) || length(num) != 1) {
+            stop("Numerator must be a single numeric value.")  
+          # Stop if num is not numeric or not a single value
+        }
+        if (!is.numeric(den) || length(den) != 1 || den == 0) {
+            stop("Denominator must be a single numeric value and cannot be zero.")  
+          # Stop if den is invalid
+        }
+
+    # Normalize the sign: if denominator is negative, make it positive and adjust the numerator
+        if (den < 0) {
+            num <- -num  # Change the sign of numerator if denominator is negative
+            den <- abs(den)  # Make the denominator positive
+        }
+
+        # Assign values to the rational number object
+        .Object@numerator <- as.integer(num)  # Store the numerator as integer
+        .Object@denominator <- as.integer(den)  # Store the denominator as integer
+        
+        # Validate the object using the validity function
+        validObject(.Object)
+        
+        # Return the initialized object
+        return(.Object)
+    }
+)
+
+#' Show method for rational class
+#'
+#' Displays the rational number in the form "numerator/denominator".
+#'
+#' @param object An object of class `rational`.
+#'
+#' @return Prints the rational number to the console.
+#' @export
+setMethod("show", "rational", 
+    function(object) {
+        cat(paste0(object@numerator, "/", object@denominator, "\n")) 
+      # Display in the form 'numerator/denominator'
+    }
+)
+
+#' Simplify a rational number
+#'
+#' Simplifies the rational number by dividing both the numerator and denominator
+#' by their greatest common divisor (GCD).
+#'
+#' @param object An object of class `rational`.
+#'
+#' @return A simplified rational number of class `rational`.
+#' @export
+
+# Define the generic function and method for simplifying rational numbers
+setGeneric("simplify", function(object) standardGeneric("simplify"))
+
+# Method to simplify a rational number by dividing numerator and denominator by their GCD
+setMethod("simplify", "rational",
+    function(object) {
+        # Find the GCD of the numerator and denominator
+        g <- gcd(object@numerator, object@denominator)
+        # Create a new simplified rational object with reduced numerator and denominator
+        new("rational", 
+            num = object@numerator / g, 
+            den = object@denominator / g)
+    }
+)
+
+
+#' Quotient of a rational number
+#'
+#' Computes the quotient of the rational number as a floating-point value
+#' rounded to the specified number of decimal places.
+#'
+#' @param object An object of class `rational`.
+#' @param digits An integer specifying the number of decimal places to round the quotient. Default is 7.
+#'
+#' @return The quotient as a numeric value.
+#' @export
+# Define a generic function and method to get the quotient of the rational number (as a floating-point value)
+setGeneric("quotient", function(object, digits = 7) standardGeneric("quotient"))
+
+# Method to compute the quotient of a rational number
+setMethod("quotient", "rational", 
+    function(object, digits = 7) {
+        # Validate that digits is a single integer value
+        if (!is.numeric(digits) || digits != as.integer(digits)) {
+            stop("digits must be a single whole number")  
+          # Stop execution if digits is not an integer
+        }
+        
+        # Convert digits to integer after validation
+        digits <- as.integer(digits)
+        
+        # Calculate the result by dividing the numerator by the denominator
+        result <- object@numerator / object@denominator
+        
+        # If the result is an integer, return it as an integer
+        if (result == floor(result)) {
+            return(as.integer(result))
+        }
+        
+        # Otherwise, return the result formatted to the specified number of digits
+        sprintf(paste0("%.", digits, "f"), result)
+    }
+)
+
+
+#' Addition of two rational numbers
+#'
+#' Adds two rational numbers by finding a common denominator and adjusting the numerators.
+#'
+#' @param e1 A rational number.
+#' @param e2 A rational number.
+#'
+#' @return A new rational number representing the sum.
+#' @export
+#' 
+setMethod("+", c("rational", "rational"),
+    function(e1, e2) {
+        # Find the least common denominator (LCD) using LCM of the denominators
+        new_den <- lcm(e1@denominator, e2@denominator)
+        # Adjust numerators to the common denominator
+        new_num1 <- e1@numerator * (new_den / e1@denominator)
+        new_num2 <- e2@numerator * (new_den / e2@denominator)
+        # Create a new rational object for the sum
+        result <- new("rational", num = new_num1 + new_num2, den = new_den)
+        simplify(result)  # Return the simplified result
+    }
+)
+
+#' Subtraction of two rational numbers
+#'
+#' Subtracts the second rational number from the first by finding a common denominator
+#' and adjusting the numerators.
+#'
+#' @param e1 A rational number.
+#' @param e2 A rational number.
+#'
+#' @return A new rational number representing the difference.
+#' @export
+setMethod("-", c("rational", "rational"),
+    function(e1, e2) {
+        # Find the least common denominator (LCD) using LCM of the denominators
+        new_den <- lcm(e1@denominator, e2@denominator)
+        # Adjust numerators to the common denominator
+        new_num1 <- e1@numerator * (new_den / e1@denominator)
+        new_num2 <- e2@numerator * (new_den / e2@denominator)
+        # Create a new rational object for the difference
+        result <- new("rational", num = new_num1 - new_num2, den = new_den)
+        simplify(result)  # Return the simplified result
+    }
+)
+
+#' Multiplication of two rational numbers
+#'
+#' Multiplies two rational numbers by multiplying their numerators and denominators.
+#'
+#' @param e1 A rational number.
+#' @param e2 A rational number.
+#'
+#' @return A new rational number representing the product.
+#' @export
+setMethod("*", c("rational", "rational"),
+    function(e1, e2) {
+        # Multiply the numerators and denominators of the two rational numbers
+        result <- new("rational", 
+                      num = e1@numerator * e2@numerator, 
+                      den = e1@denominator * e2@denominator)
+        simplify(result)  # Return the simplified result
+    }
+)
+
+#' Division of two rational numbers
+#'
+#' Divides the first rational number by the second by multiplying by the reciprocal of the second number.
+#' If the second rational number's numerator is zero, an error is raised.
+#'
+#' @param e1 A rational number (numerator).
+#' @param e2 A rational number (denominator).
+#'
+#' @return A new rational number representing the quotient.
+#' @export
+setMethod("/", c("rational", "rational"),
+    function(e1, e2) {
+        # Check if the second rational number (the divisor) has a zero numerator
+        if (e2@numerator == 0) {
+            stop("Cannot divide by zero")  # Stop execution if dividing by zero
+        }
+        # Multiply the numerator of e1 by the denominator of e2, and vice versa
+        result <- new("rational", 
+                      num = e1@numerator * e2@denominator, 
+                      den = e1@denominator * e2@numerator)
+        simplify(result)  # Return the simplified result
+    }
+)
+```
+
+Use your rational class to create three objects:
+
+-   r1: 24/6
+
+-   r2: 7/230
+
+-   r3: 0/4
+
+```{r}
+# use rational class to create the three objects below
+r1 <- new("rational", 24, 6)
+r2 <- new("rational", 7, 230)
+r3 <- new("rational", 0, 4)
+```
+
+Evaluate the following code (remember you can tell Quarto not to stop on errors):
+
+```{r, error=TRUE}
+r1
+r3
+r1 + r2
+r1 - r2
+r1 * r2
+r1 / r2
+r1 + r3
+r1 * r3
+r2 / r3
+quotient(r1)
+quotient(r2)
+quotient(r2, digits = 3)
+quotient(r2, digits = 3.14)
+quotient(r2, digits = "avocado")
+q2 <- quotient(r2, digits = 3)
+q2
+quotient(r3)
+simplify(r1)
+simplify(r2)
+simplify(r3)
+```
+
+c\. Show that your validator does not allow the creation of rational’s with 0 denominator, and check other malformed input to your constructor.
+
+Note that there are a lot of choices to be made here. How are you going to store the class? Two numerics? A vector of length two? A formula? A string? What are users going to pass into the constructor? A string (“24/6”)? Two arguments? A vector?
+
+There is no right answer to those questions. Make the best decision you can, and don’t be afraid to change it if your decision causes unforeseen difficulties.
+
+You may not use any existing R functions or packages that would trivialize this assignment. (E.g. if you found an existing package that does this, or found a function that automatically produces the quotient or simplified version, that is not able to be used.)
+
+Hint: It may be useful to define other functions that I don’t explicitly ask for.
+
+```{r, error=TRUE}
+new("rational", num = 5, den = 0)
+new("rational", num = 5, den = NULL)
+new("rational", num = "24/6")
+new("rational", num = 5, den = "24/6")
+new("rational", num = list(1, 2), den = 7)
+new("rational", num = 8, den = c(1,3))
+
+```
+
+## **Problem 2 - plotly**
+
+Let’s revisit the art data from the last problem set. Use **plotly** for these.
+
+a.  Regenerate your plot which addresses the second question from last time:
+
+    ii. Does the distribution of genre of sales across years appear to change?
+
+    You may copy your plot from last time, or copy my plot from the solutions, or come up with your own new plot.
+
+```{r}
+# load the data set and all necessary packages 
+artSale <- read.csv("df_for_ml_improved_new_market.csv")
+library(tidyverse)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(tidyr)
+library(RColorBrewer) 
+
+# Data processing
+genre_distribution <- artSale %>%
+  # Pivot data from wide format (genres as columns) to long format (genre values in rows)
+  tidyr::pivot_longer(
+    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),
+    names_to = "Genre",  # Genre column will be created
+    values_to = "IsGenre"  # Values of whether the genre is present (1 or 0) will go here
+  ) %>%
+  filter(IsGenre == 1) %>%  # Filter only rows where the genre is present (IsGenre == 1)
+  mutate(Genre = gsub("Genre___", "", Genre)) %>%  # Clean the genre column names by removing "Genre___"
+  group_by(year, Genre) %>%  # Group by both year and genre
+  summarize(count = n(), .groups = 'drop') %>%  # Count the number of sales for each genre by year
+  group_by(year) %>%
+  mutate(
+    total_sales_year = sum(count),  # Calculate the total sales for each year
+    proportion = count / total_sales_year,  # Calculate the proportion of each genre's sales to total sales
+    percentage = round(proportion * 100, 1)  # Convert the proportion to percentage and round to 1 decimal place
+  ) %>%
+  ungroup()  # Remove grouping to prepare for plotting
+
+# Create Plotly plot with stacked bar chart for genre distribution over years
+plot <- genre_distribution %>%
+  plot_ly(
+    x = ~year,  # Set x-axis to year
+    y = ~count,  # Set y-axis to the number of sales for each genre
+    color = ~Genre,  # Set the color to the Genre, differentiating bars by genre
+    colors = c("#FF9999", "#66B2FF", "#99FF99", "#FFCC99", "#FF99CC"),  # Define custom colors for each genre
+    type = 'bar',  # Set plot type to bar chart
+    hovertemplate = paste(  # Define custom hover information that shows detailed data
+      "<b>%{fullData.name}</b><br>",  # Display the genre name
+      "Year: %{x}<br>",  # Display the year
+      "Sales: %{y:,.0f}<br>",  # Display the number of sales, formatted with commas
+      "Percentage: %{customdata}%<br>",  # Display the percentage of total sales for the genre
+      "<extra></extra>"  # Extra space for the hover text (empty to avoid repetition)
+    ),
+    customdata = ~percentage  # Pass the percentage to be used in hovertext
+  ) %>%
+  layout(
+    title = list(
+      text = "Distribution of Art Genres Over Time",  # Title of the chart
+      font = list(size = 24, family = "Arial", color = "#2C3E50")  # Title styling
+    ),
+    xaxis = list(
+      title = list(
+        text = "Year",  # Label for x-axis
+        font = list(size = 14, family = "Arial")  # Font styling for x-axis label
+      ),
+      tickangle = 45,  # Rotate x-axis labels by 45 degrees for better readability
+      gridcolor = "#E5E5E5",  # Set the grid line color
+      showgrid = TRUE  # Show grid lines
+    ),
+    yaxis = list(
+      title = list(
+        text = "Number of Sales",  # Label for y-axis
+        font = list(size = 14, family = "Arial")  # Font styling for y-axis label
+      ),
+      gridcolor = "#E5E5E5",  # Set the grid line color
+      showgrid = TRUE,  # Show grid lines on y-axis
+      tickformat = ",d"  # Format y-axis tick marks as integers with commas (e.g., 1,000)
+    ),
+    legend = list(
+      title = list(
+        text = "Art Genre",  # Legend title
+        font = list(size = 12, family = "Arial")  # Font styling for legend title
+      ),
+      orientation = "h",  # Arrange legend items horizontally
+      xanchor = "center",  # Center the legend
+      x = 0.5,  # Position the legend at the horizontal center
+      y = -0.2  # Position the legend below the plot
+    ),
+    barmode = "stack",  # Set bars to stack on top of each other (for each year, each genre's sales are stacked)
+    paper_bgcolor = "white",  # Set the background color of the plot paper (area outside the chart)
+    plot_bgcolor = "white",  # Set the background color inside the plot area
+    margin = list(t = 80, r = 50, b = 100, l = 70),  # Adjust plot margins to give space for labels and legend
+    hoverlabel = list(
+      bgcolor = "white",  # Set the background color for hover text to white
+      font = list(size = 12, family = "Arial")  # Font styling for hover text
+    )
+  )
+
+# Display the plot
+plot
+```
+
+b\. Generate an interactive plot with **plotly** that can address both of these questions from last time:
+
+i.  Is there a change in the sales price in USD over time?
+
+ii. How does the genre affect the change in sales price over time?
+
+This should be a single interactive plot, with which a user can manipulate the view to be able to look at change over time overall, or by genre.
+
+These will be graded similar to last time:
+
+i.  Is the type of graph & choice of variables appropriate to answer the question?
+
+ii. Is the graph clear and easy to interpret?
+
+iii. Is the graph publication ready?
+
+```{r}
+# Calculate yearly statistics for art sale prices
+yearly_stats <- artSale %>%
+  group_by(year) %>%  # Group data by year
+  summarise(
+    median_price = median(price_usd),  # Calculate the median price
+    mean_price = mean(price_usd),  # Calculate the mean price
+    q25 = quantile(price_usd, 0.25),  # Calculate the 25th percentile (Q1)
+    q75 = quantile(price_usd, 0.75),  # Calculate the 75th percentile (Q3)
+    max_price = max(price_usd),  # Maximum sale price
+    min_price = min(price_usd),  # Minimum sale price
+    n_sales = n(),  # Total number of sales
+    std_dev = sd(price_usd),  # Standard deviation of sale prices
+    .groups = "drop"  # Drop grouping after summarization
+  ) %>%
+  # Create hover text for interactive display
+  mutate(
+    hover_text = sprintf(
+      "<b>Year: %d</b><br>Mean: $%s<br>Median: $%s<br>IQR: $%s - $%s<br>Total Sales: %d<br>Std Dev: $%s",
+      year,
+      format(round(mean_price), big.mark=","),  # Format mean price for readability
+      format(round(median_price), big.mark=","),# Format median price for readability
+      format(round(q25), big.mark=","), 
+      format(round(q75), big.mark=","),
+      n_sales,
+      format(round(std_dev), big.mark=",")
+    )
+  )
+
+# Transform the dataset to analyze genre-specific trends
+genre_trends <- artSale %>%
+  tidyr::pivot_longer(
+    cols = c(Genre___Photography, Genre___Print, Genre___Sculpture, Genre___Painting, Genre___Others),  # Specify columns to pivot
+    names_to = "Genre",  # New column for genre names
+    values_to = "IsGenre"  # New column for genre indicators (binary values)
+  ) %>%
+  filter(IsGenre == 1) %>%  # Keep rows where the genre indicator is 1
+  mutate(Genre = gsub("Genre___", "", Genre)) %>%  # Clean up genre names
+  group_by(year, Genre) %>%  # Group by year and genre
+  summarise(
+    avg_price = mean(price_usd, na.rm = TRUE),  # Average price for the genre
+    median_price = median(price_usd, na.rm = TRUE),  # Median price for the genre
+    n_sales = n(),  # Number of sales for the genre
+    total_value = sum(price_usd, na.rm = TRUE),  # Total sales value
+    market_share = n() / nrow(artSale) * 100,  # Market share as a percentage
+    .groups = "drop"  # Drop grouping after summarization
+  ) %>%
+  # Create hover text for interactive display
+  mutate(
+    hover_text = sprintf(
+      "<b>%s - %d</b><br>Avg Price: $%s<br>Median Price: $%s<br>Sales: %d<br>Market Share: %.1f%%<br>Total: $%s",
+      Genre,
+      year,
+      format(round(avg_price), big.mark=","),
+      format(round(median_price), big.mark=","),
+      n_sales,
+      market_share,
+      format(round(total_value), big.mark=",")
+    )
+  )
+
+# Generate a color palette for the genres
+genre_colors <- brewer.pal(n = length(unique(genre_trends$Genre)), "Set2")  # Use "Set2" palette
+names(genre_colors) <- unique(genre_trends$Genre)  # Assign colors to genres
+
+# Identify the year with the peak mean price for annotation
+peak_price <- yearly_stats %>%
+  filter(mean_price == max(mean_price))
+
+# Initialize a Plotly plot
+plot <- plot_ly() %>%
+  # Add a ribbon to represent the interquartile range (IQR)
+  add_ribbons(
+    data = yearly_stats,
+    x = ~year,
+    ymin = ~q25,
+    ymax = ~q75,
+    name = "IQR Range",
+    fillcolor = "rgba(173, 216, 230, 0.3)",  # Light blue color with transparency
+    line = list(color = "transparent"),  # No border line for the ribbon
+    hoverinfo = "skip"  # Disable hover information for the ribbon
+  ) %>%
+  # Add a line for the yearly mean price
+  add_trace(
+    data = yearly_stats,
+    x = ~year,
+    y = ~mean_price,
+    name = "Mean Price",
+    type = "scatter",
+    mode = "lines+markers",  # Use both lines and markers
+    line = list(color = "darkred", width = 2),  # Style the line
+    marker = list(size = 8),  # Style the markers
+    hovertext = ~hover_text,  # Add hover text
+    hoverinfo = "text"  # Display hover text
+  ) %>%
+  # Add a dashed line for the yearly median price
+  add_trace(
+    data = yearly_stats,
+    x = ~year,
+    y = ~median_price,
+    name = "Median Price",
+    type = "scatter",
+    mode = "lines+markers",
+    line = list(color = "navy", width = 2, dash = "dash"),  # Dashed navy line
+    marker = list(size = 8)
+  )
+
+# Add genre-specific trends to the plot
+for (genre in names(genre_colors)) {
+  genre_data <- genre_trends %>% filter(Genre == genre)  # Filter data for the genre
+  plot <- plot %>%
+    add_trace(
+      data = genre_data,
+      x = ~year,
+      y = ~avg_price,
+      name = genre,
+      type = "scatter",
+      mode = "lines+markers",
+      line = list(color = genre_colors[[genre]], width = 2),  # Use genre-specific color
+      marker = list(size = 8),
+      hovertext = ~hover_text,
+      hoverinfo = "text",
+      visible = FALSE  # Make genre-specific lines initially hidden
+    )
+}
+
+# Add layout and interactivity options to the plot
+plot <- plot %>%
+  layout(
+    title = "Art Sale Prices and Genre Trends Over Time",  # Main title
+    xaxis = list(title = "Year", tickangle = 45, gridcolor = "#E5E5E5"),  # Configure X-axis
+    yaxis = list(title = "Price (USD)", tickformat = "$,.0f", gridcolor = "#E5E5E5"),  # Configure Y-axis
+    updatemenus = list(
+      list(
+        type = "buttons",
+        direction = "down",  # Stack buttons vertically
+        x = -0.3,           # Position buttons to the left
+        y = 1,              # Align buttons with the top of the plot
+        buttons = list(
+          list(
+            args = list(list(visible = c(TRUE, TRUE, TRUE, rep(FALSE, length(genre_colors))))),
+            label = "Overall Trends",  # Show overall trends only
+            method = "restyle"
+          ),
+          list(
+            args = list(list(visible = c(FALSE, FALSE, FALSE, rep(TRUE, length(genre_colors))))),
+            label = "Genre Trends",  # Show genre-specific trends only
+            method = "restyle"
+          ),
+          list(
+            args = list(list(visible = rep(TRUE, length(genre_colors) + 3))),
+            label = "Show All",  # Show all traces
+            method = "restyle"
+          )
+        )
+      )
+    ),
+    legend = list(
+      orientation = "h",  # Horizontal legend
+      y = -0.3,           # Position legend below the plot
+      x = 0.5,            # Center the legend
+      xanchor = "center"
+    ),
+    hovermode = "x unified",  # Unified hover mode
+    hoverlabel = list(font = list(size = 12)),  # Customize hover label font
+    annotations = list(
+      list(
+        x = peak_price$year,  # Annotate the peak price year
+        y = peak_price$mean_price,  # Annotate the peak mean price
+        text = "Peak Price",  # Annotation text
+        showarrow = TRUE,  # Display an arrow pointing to the annotation
+        arrowhead = 2,  # Style the arrowhead
+        ax = 0,  # Horizontal offset
+        ay = -50 # Vertical offset
+      )
+    )
+  )
+
+# Display the interactive plot
+plot
+
+
+
+
+
+```
+
+## **Problem 3 - data.table**
+
+Repeat [problem set 4, question 1](https://dept.stat.lsa.umich.edu/~jerrick/courses/stat506_f24/ps4.html#problem-1---tidyverse), using **data.table**.
+
+a\. Generate a table (which can just be a nicely printed tibble) reporting the mean and median departure delay per airport. Generate a second table (which again can be a nicely printed tibble) reporting the mean and median arrival delay per airport. Exclude any destination with under 10 flights. Do this exclusion through code, not manually.
+
+Additionally,
+
+-   Order both tables in descending mean delay.
+
+-   Both tables should use the airport *names* not the airport *codes*.
+
+-   Both tables should print all rows.
+
+```{r}
+library(nycflights13)
+library(data.table)
+
+
+# Create a copy of the datasets in your environment
+flights_dt <- copy(flights)
+airports_dt <- copy(airports)
+
+# Convert the copied datasets to data.tables
+setDT(flights_dt)
+setDT(airports_dt)
+
+# Compute the table with the mean and median departure delay
+table1 <- flights_dt[
+  # Filter for non-missing departure delays
+  !is.na(dep_delay), 
+  .(mean_dep_delay = mean(dep_delay), median_dep_delay = median(dep_delay)), 
+  by = origin
+][
+  # Further filter for groups with at least 10 flights
+  flights_dt[, .N, by = origin][N >= 10], 
+  on = "origin"
+][
+  # Inner join with airports data to get airport names (only matching rows retained)
+  airports_dt, 
+  on = c("origin" = "faa"), 
+  nomatch = 0
+][
+  # Select relevant columns and rename for clarity
+  , .(airport = name, mean_dep_delay, median_dep_delay)
+][
+  # Sort by mean departure delay in descending order
+  order(-mean_dep_delay)
+]
+
+# Print the full table
+print(table1)
+
+
+
+```
+
+```{r}
+# Calculate the mean and median arrival delay for each destination airport
+table2 <- flights_dt[
+  # Filter out rows with missing arrival delay
+  !is.na(arr_delay), 
+  # Group by destination and calculate mean and median arrival delay
+  .(mean_arr_delay = mean(arr_delay, na.rm = TRUE), median_arr_delay = median(arr_delay, na.rm = TRUE)), 
+  by = dest
+][
+  # Filter to keep groups with at least 10 flights
+  flights_dt[, .N, by = dest][N >= 10], 
+  on = "dest"
+][
+  # Inner join with airports data to get airport names
+  airports_dt, 
+  on = c("dest" = "faa"), 
+  nomatch = 0
+][
+  # Select relevant columns and rename for clarity
+  , .(airport = name, mean_arr_delay, median_arr_delay)
+][
+  # Sort by mean arrival delay in descending order
+  order(-mean_arr_delay)
+]
+
+# Print the full table
+print(table2)
+```
+
+b\. How many flights did the aircraft model with the fastest average speed take? Produce a tibble with 1 row, and entries for the model, average speed (in MPH) and number of flights.
+
+```{r}
+
+# Create copies of the datasets for modification
+planes_dt <- copy(planes)
+setDT(planes_dt)
+
+# Calculate speed (in MPH) and find the aircraft model with the fastest average speed
+fastest_aircraft <- flights_dt[
+  # Filter for valid distance and air_time values
+  !is.na(distance) & !is.na(air_time) & air_time > 0, 
+  # Calculate speed in MPH
+  .(speed_mph = distance / (air_time / 60), tailnum)
+][
+  # Join with planes to get model information
+  planes_dt, 
+  on = "tailnum", 
+  nomatch = 0
+][
+  # Group by model and calculate average speed and flight count
+  , .(
+    avg_speed_mph = mean(speed_mph, na.rm = TRUE),
+    num_flights = .N
+  ), 
+  by = model
+][
+  # Order by average speed in descending order
+  order(-avg_speed_mph)
+][
+  # Select the top row (fastest model)
+  1
+]
+
+# Print the result
+print(fastest_aircraft)
+
+```

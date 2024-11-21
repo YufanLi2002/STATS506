@@ -263,7 +263,7 @@ get_temp("November", 1999, data = nnmaps, celsius = TRUE, average_fn = function(
  })
 ```
 
-### Problem 3 - Visualization 
+### Problem 3 - Visualization
 
 Note: This is, intentionally, a very open-ended question. There is no “right” answer. The goal is for you to explore your plotting options, and settle on something reasonable. You can use base R, ggplot, or soemthing else. You’ll likely have to look online for resources on plotting beyond what we covered in class.
 
