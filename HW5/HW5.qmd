@@ -11,7 +11,7 @@ editor: visual
 
 Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
 
-### Problem 1 - OOP Programming 
+### Problem 1 - OOP Programming
 
 Create a class to represent rational numbers (numbers of the form a/b for integers a and b). Do this using S4.
 

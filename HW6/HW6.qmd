@@ -1,0 +1,317 @@
+---
+title: "HW6"
+author: "Yufan Li"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+# Homework 6
+
+Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
+
+## **Stratified Bootstrapping**
+
+If a sample has a categorical variable with small groups, bootstrapping can be tricky. Consider a situation where `n = 100`, but there is some categorical variable `g` where category `g = 1` has only 2 observations. In a single bootstrap resample of that data, there is a
+
+$$\left(\frac{98}{100}\right)^{100} \approx 13\%$$
+
+chance that the bootstrap sample does not include either observation from `g = 1`. This implies that if we are attempting to obtain a bootstrap estimate in group `g = 1`, 13% of the bootstrapped samples will have no observations from that group and thus unable to produce an estimate.
+
+A way around this is to carry out stratified bootstrap: Instead of taking a sample with replacement of the whole sample, take separate bootstrap resamples within each strata, then combine those resamples to generate the bootstrap sample.
+
+Use the [“lahman” data that we first introduced in sql](https://dept.stat.lsa.umich.edu/~jerrick/courses/stat506_f24/07-sql.html#lahman-example). In the statistical analysis of baseball statistics, one metric used to measure a players performance is their [Range Factor](https://en.wikipedia.org/wiki/Range_factor):
+
+$$RF = 3 \left(\frac{\text{PO} + A}{\text{InnOuts}}\right)$$
+
+Here, “PO” is put outs, “A” is assists”, and “innouts” is the number of outs they were on the field for.
+
+a.  Calculate the average RF for each team in the Fielding table. Then, since we don’t have a closed form for the standard deviation of this statistic, carry out a stratified bootstrap **by team** to estimate it. Do this out three ways:
+
+    1.  Without any parallel processing
+
+    2.  Using parallel processing with the `parallel` package.
+
+    3.  Using futures with the `future` package.
+
+    Generate at least 1,000 bootstrapped samples for each approach.
+
+b.  Generate a table showing the estimated RF and associated standard errors *for the teams with the 10 highest RF* from the three approaches.
+
+c.  Report and discuss the performance difference between the versions.
+
+*Edit 11/26: Clarified that results only for the top 10 teams should be produced.*
+
+Part (a)
+
+```{r}
+setwd("~/Documents/GitHub/STATS506/HW6")
+library(dplyr)
+library(DBI)     # For interfacing with a database
+library(parallel)
+library(future)
+library(furrr)
+# Import the SQLite database of the Lahman data
+lahman <- dbConnect(RSQLite::SQLite(), "lahman_1871-2022.sqlite")
+
+# Load the fielding table from the Lahman database
+fielding <- dbReadTable(lahman, "Fielding")
+
+# Clean and prepare the data
+fielding_clean <- fielding %>%
+  filter(!is.na(InnOuts) & InnOuts > 0 & !is.na(PO) & !is.na(A))
+
+# Calculate original team Range Factor
+fielding_team_rf <- fielding_clean %>%
+  mutate(RF = 3*(PO + A) / InnOuts) %>%
+  group_by(teamID) %>%
+  summarise(avg_RF = mean(RF, na.rm = TRUE)) %>%
+  arrange(desc(avg_RF))
+
+head(fielding_team_rf,10)
+```
+
+-   without any parallel processing
+
+```{r}
+
+#' Sequential Bootstrapping Function
+#'
+#' This function performs sequential bootstrapping on a given dataset, computing
+#' resampled Range Factor (RF) statistics for each team.
+#'
+#' @param data A data frame containing the input data. Must include columns: teamID, PO, A, and InnOuts.
+#' @param n_resamples Integer specifying the number of bootstrap resamples. Default is 1000.
+#'
+#' @return A data frame with the mean and standard error of bootstrapped Range Factor (RF) for each team.
+#'
+#' @examples
+#' set.seed(506)
+#' result_seq <- sequential_bootstrap(fielding_clean)
+#' head(result_seq, 10)
+#'
+#' @export
+sequential_bootstrap <- function(data, n_resamples = 1000) {
+  # Initialize bootstrapping process, replicate function for multiple resamples
+  boot_results <- replicate(n_resamples, {
+    data %>%
+      group_by(teamID) %>%                          # Group data by teamID
+      slice_sample(prop = 1, replace = TRUE) %>%    # Resample each group with replacement
+      ungroup() %>%                                 # Ungroup for further processing
+      mutate(RF = 3 * (PO + A) / InnOuts) %>%       # Calculate Range Factor (RF)
+      group_by(teamID) %>%                          # Regroup to summarize by team
+      summarise(boot_RF = mean(RF, na.rm = TRUE))   # Compute mean RF for each team in the bootstrap
+  }, simplify = FALSE)
+
+  # Combine bootstrapped results and compute summary statistics
+  do.call(rbind, boot_results) %>%                  # Bind all bootstrap results together
+    group_by(teamID) %>%                            # Group by teamID for final summary
+    summarise(
+      boot_mean_RF = mean(boot_RF),                 # Calculate mean RF across resamples
+      boot_se_RF = sd(boot_RF)                      # Calculate standard error of RF
+    )
+}
+
+# output
+set.seed(506)
+result_seq <- sequential_bootstrap(fielding_clean)
+head(result_seq, 10)
+
+```
+
+-   Using parallel processing with the `parallel` package
+
+```{r}
+#' Parallel Bootstrapping Function
+#'
+#' This function performs parallelized bootstrapping on a given dataset, computing
+#' resampled Range Factor (RF) statistics for each team.
+#'
+#' @param data A data frame containing the input data. Must include columns: teamID, PO, A, and InnOuts.
+#' @param n_resamples Integer specifying the number of bootstrap resamples. Default is 1000.
+#' @param n_cores Integer specifying the number of cores to use for parallel processing. Defaults to one less than the number of available cores.
+#'
+#' @return A data frame with the mean and standard error of bootstrapped Range Factor (RF) for each team.
+#'
+#' @examples
+#' set.seed(506)
+#' result_parallel <- parallel_bootstrap(fielding_clean)
+#' head(result_parallel, 10)
+#'
+#' @export
+parallel_bootstrap <- function(data, n_resamples = 1000, n_cores = detectCores() - 1) {
+  # Create a cluster for parallel computation
+  cl <- makeCluster(n_cores)
+
+  # Load necessary libraries on each worker
+  clusterEvalQ(cl, {
+    library(dplyr)
+  })
+
+  # Export the data to the worker nodes
+  clusterExport(cl, varlist = c("data"), envir = environment())
+
+  # Perform parallelized bootstrapping
+  boot_results <- parLapply(cl, 1:n_resamples, function(i) {
+    data %>%
+      group_by(teamID) %>%                          # Group data by teamID
+      slice_sample(prop = 1, replace = TRUE) %>%    # Resample each group with replacement
+      ungroup() %>%                                 # Ungroup for further processing
+      mutate(RF = 3 * (PO + A) / InnOuts) %>%       # Calculate Range Factor (RF)
+      group_by(teamID) %>%                          # Regroup to summarize by team
+      summarise(boot_RF = mean(RF, na.rm = TRUE))   # Compute mean RF for each team in the bootstrap
+  })
+
+  # Stop the cluster to free up resources
+  stopCluster(cl)
+
+  # Combine bootstrapped results and compute summary statistics
+  do.call(rbind, boot_results) %>%                  # Bind all bootstrap results together
+    group_by(teamID) %>%                            # Group by teamID for final summary
+    summarise(
+      boot_mean_RF = mean(boot_RF),                 # Calculate mean RF across resamples
+      boot_se_RF = sd(boot_RF)                      # Calculate standard error of RF
+    )
+}
+
+# Output
+set.seed(506)
+result_parallel <- parallel_bootstrap(fielding_clean)
+head(result_parallel, 10)
+
+```
+
+-   Using futures with the `future` package
+
+```{r}
+#' Futures Bootstrapping Function
+#'
+#' This function performs bootstrapping on a given dataset using the `furrr` package for parallel execution,
+#' computing resampled Range Factor (RF) statistics for each team.
+#'
+#' @param data A data frame containing the input data. Must include columns: teamID, PO, A, and InnOuts.
+#' @param n_resamples Integer specifying the number of bootstrap resamples. Default is 1000.
+#'
+#' @return A data frame with the mean and standard error of bootstrapped Range Factor (RF) for each team.
+#'
+#' @examples
+#' set.seed(506)
+#' result_futures <- futures_bootstrap(fielding_clean)
+#' head(result_futures, 10)
+#'
+#' @export
+futures_bootstrap <- function(data, n_resamples = 1000) {
+  # Set up parallel processing using the "multisession" strategy
+  plan(multisession)
+
+  # Perform bootstrapping in parallel using future_map
+  boot_results <- future_map(1:n_resamples, function(i) {
+    data %>%
+      group_by(teamID) %>%                          # Group data by teamID
+      slice_sample(prop = 1, replace = TRUE) %>%    # Resample each group with replacement
+      ungroup() %>%                                 # Ungroup for further processing
+      mutate(RF = 3 * (PO + A) / InnOuts) %>%       # Calculate Range Factor (RF)
+      group_by(teamID) %>%                          # Regroup to summarize by team
+      summarise(boot_RF = mean(RF, na.rm = TRUE))   # Compute mean RF for each team in the bootstrap
+  }, .options = furrr_options(seed = TRUE))        # Ensure reproducibility with a set seed
+
+  # Combine bootstrapped results and compute summary statistics
+  do.call(rbind, boot_results) %>%                  # Bind all bootstrap results together
+    group_by(teamID) %>%                            # Group by teamID for final summary
+    summarise(
+      boot_mean_RF = mean(boot_RF),                 # Calculate mean RF across resamples
+      boot_se_RF = sd(boot_RF)                      # Calculate standard error of RF
+    )
+}
+
+# output
+set.seed(506)
+result_futures <- futures_bootstrap(fielding_clean)
+head(result_futures, 10)
+
+```
+
+Part (b)
+
+```{r}
+# Timing and Running Bootstraps
+set.seed(506)  # Set a seed for reproducibility of results
+
+# Run and time the sequential bootstrap method
+# `system.time` captures the execution time for the function
+time_sequential <- system.time(
+  seq_boot_results <- sequential_bootstrap(fielding_clean)
+)
+
+# Run and time the parallel bootstrap method
+# Uses `parallel` package for distributed computing
+time_parallel <- system.time(
+  parallel_boot_results <- parallel_bootstrap(fielding_clean)
+)
+
+# Run and time the futures-based bootstrap method
+# Uses `furrr` package for parallel execution with futures
+time_futures <- system.time(
+  futures_boot_results <- futures_bootstrap(fielding_clean)
+)
+
+# top 10 teams based on their average Range Factor (RF)
+# Extract the team IDs for the top 10 teams from the original team RF data
+# `fielding_team_rf` contains the average RF values for all teams
+top_10_teams <- fielding_team_rf %>% 
+  slice_head(n = 10) %>%               # Select the top 10 rows
+  pull(teamID)                         # Extract the `teamID` column as a vector
+
+# Performance Comparison
+comparison_table <- seq_boot_results %>% 
+  filter(teamID %in% top_10_teams) %>% # Keep only the top 10 teams
+  left_join(
+    parallel_boot_results %>% 
+      filter(teamID %in% top_10_teams) %>%
+      rename(
+        avg_RF_parallel = boot_mean_RF,  # Rename columns for parallel method
+        sd_RF_parallel = boot_se_RF
+      ) %>%
+      select(teamID, avg_RF_parallel, sd_RF_parallel), # Select relevant columns
+    by = "teamID"                                   # Merge by `teamID`
+  ) %>%
+  left_join(
+    futures_boot_results %>% 
+      filter(teamID %in% top_10_teams) %>%
+      rename(
+        avg_RF_future = boot_mean_RF,    # Rename columns for futures method
+        sd_RF_future = boot_se_RF
+      ) %>%
+      select(teamID, avg_RF_future, sd_RF_future), # Select relevant columns
+    by = "teamID"                                   # Merge by `teamID`
+  ) %>%
+  rename(
+    avg_RF_base = boot_mean_RF,          # Rename columns for sequential method
+    sd_RF_base = boot_se_RF
+  ) %>%
+  arrange(desc(avg_RF_base))             # Arrange by descending average RF from the base method
+
+# Displays average RF and standard errors for all three methods for the top 10 teams
+print(comparison_table)
+
+```
+
+Part (c)
+
+```{r}
+set.seed(506)
+# Performance Comparison
+# Create performance comparison table
+performance_table <- data.frame(
+  Method = c("Sequential", "Parallel", "Futures"),
+  User_Time = c(time_sequential[1], time_parallel[1], time_futures[1]),
+  System_Time = c(time_sequential[2], time_parallel[2], time_futures[2]),
+  Elapsed_Time = c(time_sequential[3], time_parallel[3], time_futures[3])
+)
+
+# Print performance table
+print(performance_table)
+```
+
+Based on the above output, we can see that the performance comparison highlights significant differences between the sequential, parallel, and futures methods for bootstrapping. The sequential method is the slowest, with an elapsed time of around 35 seconds, as it processes resamples one at a time on a single thread, making it inefficient for large datasets. In contrast, the parallel method leverages multiple CPU cores, reducing the elapsed time to around 10 seconds, offering a significant speedup by distributing computations across threads. Similarly, the futures method achieves parallelism with an elapsed time of around 12 seconds, slightly slower than the parallel approach due to the overhead of managing `future_map` tasks. Both parallel and futures approaches outperform sequential processing, demonstrating the value of leveraging multicore architectures for computationally intensive tasks.
