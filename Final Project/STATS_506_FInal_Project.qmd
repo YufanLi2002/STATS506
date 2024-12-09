@@ -1,0 +1,10 @@
+---
+title: "STATS 506 Final Project"
+author: "Yufan Li"
+format: html
+editor: visual
+---
+
+## STATS 506 Final Project
+
+Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
