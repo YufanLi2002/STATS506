@@ -15,4 +15,308 @@ Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
 setwd("~/Documents/GitHub/STATS506/Final Project")
 IRS <- read.csv("Data/20zpallagi.csv")
 Medicare <- read.csv("Data/Medicare_Physician_Other_Practitioners_by_Provider_and_Service_2020.csv")
+
+
+```
+
+### Clean the data 
+
+```{r}
+library(dplyr)
+
+# Clean and extract relevant variables from the IRS dataset
+# Filter the IRS data for Michigan (State FIPS code for Michigan is '26')
+# Clean and filter the IRS data for Michigan (STATEFIPS = 26)
+IRS_clean <- IRS %>%
+  filter(STATEFIPS == "26") %>%  # Keep only Michigan data
+  select(STATEFIPS, zipcode, A00100, agi_stub, N2) %>%  # Select relevant columns
+  filter(!is.na(A00100) & zipcode != 0)  # Remove rows with missing AGI or ZIP code
+
+# Clean and extract relevant variables from the Medicare dataset
+Medicare_clean <- Medicare %>%
+  filter(Rndrng_Prvdr_State_FIPS == "26") %>%  # Keep only Michigan data
+  select(Rndrng_Prvdr_State_FIPS, Rndrng_Prvdr_Zip5, Place_Of_Srvc, Tot_Benes, Tot_Srvcs) %>%  # Select necessary columns
+  filter(!is.na(Rndrng_Prvdr_Zip5))  # Remove rows with missing ZIP code
+
+
+# Convert both `Rndrng_Prvdr_State_FIPS` and `STATEFIPS` to character type
+Medicare_clean$Rndrng_Prvdr_State_FIPS <- as.character(Medicare_clean$Rndrng_Prvdr_State_FIPS)
+IRS_clean$STATEFIPS <- as.character(IRS_clean$STATEFIPS)
+Medicare_clean$Rndrng_Prvdr_Zip5 <- as.character(Medicare_clean$Rndrng_Prvdr_Zip5)
+IRS_clean$zipcode <- as.character(IRS_clean$zipcode)
+
+
+
+
+
+```
+
+### Weighting functions and Aggregated data
+
+```{r}
+weighted_median <- function(values, weights) {
+  # Sort values and weights by the values
+  sorted_indices <- order(values)
+  sorted_values <- values[sorted_indices]
+  sorted_weights <- weights[sorted_indices]
+  
+  # Calculate cumulative weights
+  cumulative_weights <- cumsum(sorted_weights)
+  total_weight <- sum(weights)
+  
+  # Find the median: the value where the cumulative weight exceeds half the total weight
+  median_index <- which(cumulative_weights >= total_weight / 2)[1]
+  return(sorted_values[median_index])
+}
+
+# Define a function to calculate the mode (most frequent value)
+mode_function <- function(x) {
+  uniq_x <- unique(x)
+  freq_table <- table(x)
+  mode_value <- names(freq_table)[which.max(freq_table)]
+  return(mode_value)
+}
+
+
+
+# Aggregate by ZIP code and calculate the weighted median of agi_stub
+IRS_clean_agg <- IRS_clean %>%
+  group_by(STATEFIPS, zipcode) %>%
+  summarize(
+    agi_stub_weighted_median = weighted_median(agi_stub, N2),  # Calculate the weighted median
+    .groups = "drop"
+  )
+
+
+Medicare_clean_agg <- Medicare_clean %>%
+  group_by(Rndrng_Prvdr_State_FIPS, Rndrng_Prvdr_Zip5) %>%
+  summarize(
+    total_beneficiaries = sum(Tot_Benes, na.rm = TRUE),  # Sum of total beneficiaries
+    total_services = sum(Tot_Srvcs, na.rm = TRUE),  # Sum of total services
+    Place_Of_Srvc = mode_function(Place_Of_Srvc),  # Mode of Place of Service
+    .groups = "drop"  # Remove grouping after aggregation
+  )
+```
+
+### Merge the data sets 
+
+```{r}
+# Merge the IRS and Medicare data by ZIP code and state FIPS
+# Perform the inner join to keep only matching rows based on zipcode
+merged_data <- inner_join(IRS_clean_agg, Medicare_clean_agg, 
+                          by = c("zipcode" = "Rndrng_Prvdr_Zip5", 
+                                 "STATEFIPS" = "Rndrng_Prvdr_State_FIPS"))
+
+# Check the structure of the merged data
+# str(merged_data)
+merged_data$Place_Of_Srvc_binary <- ifelse(merged_data$Place_Of_Srvc == "F", 1, 0)
+
+summary(merged_data$agi_stub_weighted_median)
+
+# Proportion of services in facility vs non-facility settings
+table(merged_data$Place_Of_Srvc_binary)
+prop.table(table(merged_data$Place_Of_Srvc_binary))
+
+```
+
+### EDA Plots
+
+```{r}
+# Histogram of Weighted Median AGI Levels
+library(ggplot2)
+
+ggplot(merged_data, aes(x = agi_stub_weighted_median)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Distribution of Weighted Median AGI Levels by ZIP Code",
+       x = "Weighted Median AGI Stub", y = "Frequency") +
+  theme_minimal()
+
+```
+
+```{r}
+# Bar plot of service settings (Facility vs Non-Facility)
+ggplot(merged_data, aes(x = as.factor(Place_Of_Srvc_binary))) +
+  geom_bar(fill = c("red", "blue"), color = "black", alpha = 0.7) +
+  scale_x_discrete(labels = c("Non-Facility", "Facility")) +
+  labs(title = "Proportion of Services in Facility vs Non-Facility Settings",
+       x = "Service Setting", y = "Count") +
+  theme_minimal()
+
+```
+
+```{r}
+# Correct Box Plot of AGI by Service Setting
+ggplot(merged_data, aes(x = as.factor(Place_Of_Srvc_binary), y = agi_stub_weighted_median)) +
+  geom_boxplot(fill = c("red", "blue"), color = "black", alpha = 0.7) +
+  scale_x_discrete(labels = c("Non-Facility", "Facility")) +
+  labs(title = "AGI Levels by Service Setting",
+       x = "Service Setting", y = "Weighted Median AGI Stub") +
+  theme_minimal()
+
+
+
+```
+
+### Model Fitting
+
+```{r}
+# Logistic regression to predict service type (facility vs non-facility) based on AGI levels
+logistic_model <- glm(Place_Of_Srvc_binary ~ agi_stub_weighted_median, 
+                      data = merged_data, 
+                      family = binomial)
+
+# Check model summary
+summary(logistic_model)
+
+# Odds ratio interpretation
+exp(coef(logistic_model))  # Calculate odds ratios from coefficients
+
+
+
+```
+
+```{r}
+# Check for model fit
+anova(logistic_model, test = "Chisq")  # Likelihood ratio test
+
+
+
+```
+
+```{r}
+# Logistic regression with additional factors like total services and total beneficiaries
+logistic_model_control <- glm(Place_Of_Srvc_binary ~ agi_stub_weighted_median + total_services + total_beneficiaries, 
+                              data = merged_data, 
+                              family = binomial)
+
+# Model summary with additional controls
+summary(logistic_model_control)
+library(car)
+vif(logistic_model_control)
+
+
+logistic_model_control2 <- glm(Place_Of_Srvc_binary ~ agi_stub_weighted_median + total_beneficiaries, 
+                              data = merged_data, 
+                              family = binomial)
+
+# Model summary with additional controls
+summary(logistic_model_control2)
+```
+
+```{r}
+# Install and load the randomForest package
+install.packages("randomForest")
+library(randomForest)
+
+# Build the random forest model
+rf_model <- randomForest(Place_Of_Srvc_binary ~ agi_stub_weighted_median + total_services + total_beneficiaries, 
+                         data = merged_data, 
+                         ntree = 500,   # Number of trees
+                         importance = TRUE)
+
+# View model summary and variable importance
+print(rf_model)
+importance(rf_model)
+
+```
+
+### Leaflet visualization
+
+```{r}
+# Install and load required libraries
+install.packages(c("leaflet", "zipcodeR"))
+library(leaflet)
+library(zipcodeR)
+library(dplyr)
+
+# Convert ZIP codes to coordinates
+zip_coords <- zip_code_db %>%
+  filter(zipcode %in% merged_data$zipcode) %>%
+  select(zipcode, lat, lng)
+
+# Merge coordinates with your data
+mapped_data <- merged_data %>%
+  left_join(zip_coords, by = c("zipcode" = "zipcode"))
+
+# Create a color palette for AGI stub
+agi_pal <- colorNumeric(
+  palette = "YlOrRd",  # Yellow-Orange-Red color scale
+  domain = mapped_data$agi_stub_weighted_median
+)
+
+# Create the Leaflet map
+leaflet_map <- leaflet(mapped_data) %>%
+  addTiles() %>%  # Add default OpenStreetMap tiles
+  addCircleMarkers(
+    lng = ~lng, 
+    lat = ~lat,
+    radius = ~(total_services / max(total_services) * 10),  # Size based on total services
+    color = ~agi_pal(agi_stub_weighted_median),
+    fillOpacity = 0.7,
+    popup = paste(
+      "ZIP Code:", mapped_data$zipcode, "<br>",
+      "Weighted AGI Stub Median:", mapped_data$agi_stub_weighted_median, "<br>",
+      "Total Beneficiaries:", mapped_data$total_beneficiaries, "<br>",
+      "Total Services:", mapped_data$total_services, "<br>",
+      "Place of Service:", mapped_data$Place_Of_Srvc
+    )
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal = agi_pal,
+    values = ~agi_stub_weighted_median,
+    title = "Weighted AGI Stub Median"
+  )
+
+# Display the map
+leaflet_map
+
+
+```
+
+```{r}
+# Install required packages
+install.packages(c("webshot", "mapview"))
+
+# Load libraries
+library(leaflet)
+library(webshot)
+library(mapview)
+
+# Ensure phantomJS is installed
+webshot::install_phantomjs()
+
+# Create the Leaflet map (your existing code)
+leaflet_facility_map <- leaflet(mapped_data) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng = ~lng, 
+    lat = ~lat,
+    radius = ~(total_services / max(total_services) * 10),
+    color = ~facility_pal(Place_Of_Srvc),
+    fillOpacity = 0.7,
+    popup = paste(
+      "ZIP Code:", mapped_data$zipcode, "<br>",
+      "Place of Service:", mapped_data$Place_Of_Srvc, "<br>",
+      "Total Services:", mapped_data$total_services
+    )
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal = facility_pal,
+    values = ~Place_Of_Srvc,
+    title = "Place of Service"
+  )
+
+leaflet_facility_map
+
+# Save the Leaflet map as an HTML file first
+saveWidget(leaflet_facility_map, "temp_map.html")
+
+# Then convert HTML to PNG
+webshot("temp_map.html", "michigan_medicare_facility_map.png")
+
+# Optional: Remove the temporary HTML file
+file.remove("temp_map.html")
+
 ```
