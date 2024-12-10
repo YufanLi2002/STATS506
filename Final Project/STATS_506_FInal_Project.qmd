@@ -60,28 +60,58 @@ IRS_clean$zipcode <- as.character(IRS_clean$zipcode)
 ### Weighting functions and Aggregated data
 
 ```{r}
+#' Calculate the Weighted Median
+#'
+#' This function calculates the weighted median of a set of values. The weighted median is the value that separates the data such that the sum of the weights of the values less than the median is equal to or less than the sum of the weights of the values greater than the median.
+#'
+#' @param values A numeric vector of values.
+#' @param weights A numeric vector of corresponding weights for the values.
+#' @return A single numeric value representing the weighted median.
+#' @examples
+#' values <- c(1, 2, 3, 4, 5)
+#' weights <- c(1, 1, 1, 1, 1)
+#' weighted_median(values, weights)
 weighted_median <- function(values, weights) {
-  # Sort values and weights by the values
-  sorted_indices <- order(values)
-  sorted_values <- values[sorted_indices]
-  sorted_weights <- weights[sorted_indices]
+  # Sort values and weights by the values in ascending order
+  sorted_indices <- order(values)  # Get indices that would sort the values
+  sorted_values <- values[sorted_indices]  # Sort the values
+  sorted_weights <- weights[sorted_indices]  # Sort the corresponding weights
   
   # Calculate cumulative weights
-  cumulative_weights <- cumsum(sorted_weights)
-  total_weight <- sum(weights)
+  cumulative_weights <- cumsum(sorted_weights)  # Compute the cumulative sum of the weights
+  total_weight <- sum(weights)  # Total weight is the sum of all weights
   
-  # Find the median: the value where the cumulative weight exceeds half the total weight
-  median_index <- which(cumulative_weights >= total_weight / 2)[1]
+  # Find the index where the cumulative weight exceeds half of the total weight
+  median_index <- which(cumulative_weights >= total_weight / 2)[1]  # Find the first index where cumulative weight is >= half of total weight
+  
+  # Return the value corresponding to that index as the weighted median
   return(sorted_values[median_index])
 }
 
-# Define a function to calculate the mode (most frequent value)
+
+#' Calculate the Mode (Most Frequent Value)
+#'
+#' This function calculates the mode of a set of values. The mode is the value that appears most frequently in the data.
+#'
+#' @param x A numeric vector.
+#' @return A single value representing the mode (the most frequent value).
+#' @examples
+#' x <- c(1, 2, 2, 3, 4)
+#' mode_function(x)
 mode_function <- function(x) {
-  uniq_x <- unique(x)
-  freq_table <- table(x)
-  mode_value <- names(freq_table)[which.max(freq_table)]
+  # Get the unique values in the vector
+  uniq_x <- unique(x)  # Find unique values in the vector
+  
+  # Create a frequency table of the values in the vector
+  freq_table <- table(x)  # Count the frequency of each value
+  
+  # Find the value with the highest frequency
+  mode_value <- names(freq_table)[which.max(freq_table)]  # Find the name of the value with the highest frequency
+  
+  # Return the mode value
   return(mode_value)
 }
+
 
 
 
