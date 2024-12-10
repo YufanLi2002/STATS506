@@ -12,21 +12,26 @@ Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
 ### Load the Data
 
 ```{r}
+# Load the data sets 
 setwd("~/Documents/GitHub/STATS506/Final Project")
 IRS <- read.csv("Data/20zpallagi.csv")
 Medicare <- read.csv("Data/Medicare_Physician_Other_Practitioners_by_Provider_and_Service_2020.csv")
 
-
+## Load the necessary packages 
+library(dplyr)
+library(ggplot2)
+library(car)
+library(randomForest)
+library(leaflet)
+library(zipcodeR)
 ```
 
 ### Clean the data 
 
 ```{r}
-library(dplyr)
 
 # Clean and extract relevant variables from the IRS dataset
 # Filter the IRS data for Michigan (State FIPS code for Michigan is '26')
-# Clean and filter the IRS data for Michigan (STATEFIPS = 26)
 IRS_clean <- IRS %>%
   filter(STATEFIPS == "26") %>%  # Keep only Michigan data
   select(STATEFIPS, zipcode, A00100, agi_stub, N2) %>%  # Select relevant columns
@@ -35,7 +40,8 @@ IRS_clean <- IRS %>%
 # Clean and extract relevant variables from the Medicare dataset
 Medicare_clean <- Medicare %>%
   filter(Rndrng_Prvdr_State_FIPS == "26") %>%  # Keep only Michigan data
-  select(Rndrng_Prvdr_State_FIPS, Rndrng_Prvdr_Zip5, Place_Of_Srvc, Tot_Benes, Tot_Srvcs) %>%  # Select necessary columns
+  select(Rndrng_Prvdr_State_FIPS, Rndrng_Prvdr_Zip5, Place_Of_Srvc, Tot_Benes, Tot_Srvcs) %>%  
+  # Select necessary columns
   filter(!is.na(Rndrng_Prvdr_Zip5))  # Remove rows with missing ZIP code
 
 
@@ -123,7 +129,6 @@ prop.table(table(merged_data$Place_Of_Srvc_binary))
 
 ```{r}
 # Histogram of Weighted Median AGI Levels
-library(ggplot2)
 
 ggplot(merged_data, aes(x = agi_stub_weighted_median)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
@@ -179,8 +184,6 @@ exp(coef(logistic_model))  # Calculate odds ratios from coefficients
 # Check for model fit
 anova(logistic_model, test = "Chisq")  # Likelihood ratio test
 
-
-
 ```
 
 ```{r}
@@ -191,23 +194,10 @@ logistic_model_control <- glm(Place_Of_Srvc_binary ~ agi_stub_weighted_median + 
 
 # Model summary with additional controls
 summary(logistic_model_control)
-library(car)
-vif(logistic_model_control)
 
-
-logistic_model_control2 <- glm(Place_Of_Srvc_binary ~ agi_stub_weighted_median + total_beneficiaries, 
-                              data = merged_data, 
-                              family = binomial)
-
-# Model summary with additional controls
-summary(logistic_model_control2)
 ```
 
 ```{r}
-# Install and load the randomForest package
-install.packages("randomForest")
-library(randomForest)
-
 # Build the random forest model
 rf_model <- randomForest(Place_Of_Srvc_binary ~ agi_stub_weighted_median + total_services + total_beneficiaries, 
                          data = merged_data, 
@@ -223,11 +213,6 @@ importance(rf_model)
 ### Leaflet visualization
 
 ```{r}
-# Install and load required libraries
-install.packages(c("leaflet", "zipcodeR"))
-library(leaflet)
-library(zipcodeR)
-library(dplyr)
 
 # Convert ZIP codes to coordinates
 zip_coords <- zip_code_db %>%
@@ -276,15 +261,9 @@ leaflet_map
 
 ```{r}
 # Install required packages
-install.packages(c("webshot", "mapview"))
 
 # Load libraries
 library(leaflet)
-library(webshot)
-library(mapview)
-
-# Ensure phantomJS is installed
-webshot::install_phantomjs()
 
 # Create the Leaflet map (your existing code)
 leaflet_facility_map <- leaflet(mapped_data) %>%
@@ -310,13 +289,6 @@ leaflet_facility_map <- leaflet(mapped_data) %>%
 
 leaflet_facility_map
 
-# Save the Leaflet map as an HTML file first
-saveWidget(leaflet_facility_map, "temp_map.html")
 
-# Then convert HTML to PNG
-webshot("temp_map.html", "michigan_medicare_facility_map.png")
-
-# Optional: Remove the temporary HTML file
-file.remove("temp_map.html")
 
 ```
