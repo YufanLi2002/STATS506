@@ -8,3 +8,11 @@ editor: visual
 ---
 
 Github Repo Link: <https://github.com/YufanLi2002/STATS506.git>
+
+### Load the Data
+
+```{r}
+setwd("~/Documents/GitHub/STATS506/Final Project")
+IRS <- read.csv("Data/20zpallagi.csv")
+Medicare <- read.csv("Data/Medicare_Physician_Other_Practitioners_by_Provider_and_Service_2020.csv")
+```
