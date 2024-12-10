@@ -329,3 +329,10 @@ leaflet_facility_map
 
 
 ```
+
+### Export the cleaned data
+
+```{r}
+# Export merged_data to a CSV file
+write.csv(merged_data, "merged_data.csv", row.names = FALSE)
+```
