@@ -295,6 +295,13 @@ leaflet_map
 # Load libraries
 library(leaflet)
 
+# Create a binary color palette for facility vs non-facility
+facility_pal <- colorFactor(
+  palette = c("blue", "red"),
+  levels = c("F", "O"),
+  domain = mapped_data$Place_Of_Srvc)
+
+
 # Create the Leaflet map (your existing code)
 leaflet_facility_map <- leaflet(mapped_data) %>%
   addTiles() %>%
